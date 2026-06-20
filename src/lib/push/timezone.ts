@@ -1,15 +1,15 @@
 const DEFAULT_TIMEZONE = "America/Sao_Paulo";
 
-export function getCurrentHourInTimezone(timezone = DEFAULT_TIMEZONE): number {
+export function getCurrentHourInTimezone(timezone = DEFAULT_TIMEZONE, date = new Date()): number {
   try {
     const hour = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
       hour: "numeric",
       hour12: false,
-    }).format(new Date());
+    }).format(date);
     return parseInt(hour, 10);
   } catch {
-    return new Date().getHours();
+    return date.getHours();
   }
 }
 

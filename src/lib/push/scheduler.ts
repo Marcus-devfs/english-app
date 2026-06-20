@@ -1,8 +1,9 @@
 import {
-  DEFAULT_REMINDER_SLOTS,
-  EVENING_FALLBACK_HOUR,
   HIGH_STREAK_THRESHOLD,
   isAnyReminderHour,
+  isDefaultReminderSlot,
+  isEveningReminderSlot,
+  isMorningReminderSlot,
   MAX_DAILY_PUSHES,
   MAX_DAILY_PUSHES_HIGH_STREAK,
   MIN_HOURS_BETWEEN_PUSHES,
@@ -38,17 +39,38 @@ function hoursSince(date: Date): number {
 /** Retorna o slot esperado para o próximo push (0 = 1º, 1 = 2º). */
 export function getExpectedSlotHour(
   reminderHour: number,
-  sentCount: number
+  sentCount: number,
+  currentHour: number,
+  lastSentHour?: number
 ): number | null {
   if (isAnyReminderHour(reminderHour)) {
-    return DEFAULT_REMINDER_SLOTS[sentCount] ?? null;
+    if (sentCount === 0) {
+      // 1º do dia: 8h ou qualquer hora entre 19h e 21h
+      if (isDefaultReminderSlot(currentHour)) {
+        return currentHour;
+      }
+      return null;
+    }
+
+    if (sentCount === 1) {
+      // 2º do dia: 19h–21h, só se o 1º foi de manhã
+      if (
+        isEveningReminderSlot(currentHour) &&
+        lastSentHour !== undefined &&
+        isMorningReminderSlot(lastSentHour)
+      ) {
+        return currentHour;
+      }
+      return null;
+    }
+
+    return null;
   }
 
   if (sentCount === 0) return reminderHour;
 
-  // 2º lembrete à noite, exceto se o horário fixo já for tarde (≥ 18h)
   if (sentCount === 1 && reminderHour < 18) {
-    return EVENING_FALLBACK_HOUR;
+    return isEveningReminderSlot(currentHour) ? currentHour : null;
   }
 
   return null;
@@ -106,7 +128,14 @@ export function evaluateReminderSchedule(input: EvaluateScheduleInput): Schedule
     return { shouldSend: false, reason: "cooldown" };
   }
 
-  const expectedSlot = getExpectedSlotHour(reminderHour, sentCount);
+  const expectedSlot = getExpectedSlotHour(
+    reminderHour,
+    sentCount,
+    currentHour,
+    notificationState?.lastSentAt
+      ? getCurrentHourInTimezone(timezone, new Date(notificationState.lastSentAt))
+      : undefined
+  );
 
   if (!force && expectedSlot === null) {
     return { shouldSend: false, reason: "no_slot_for_count" };

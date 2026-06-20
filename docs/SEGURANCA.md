@@ -424,7 +424,7 @@ Autenticado (cookie ingles_session)
 ### Implementado no código ✅
 
 ```
-[x] JWT_SECRET fail-fast em produção (sem fallback fraco)
+[x] JWT_SECRET fail-fast em produção (sem fallback fraco)1
 [x] ?force=1 desabilitado em produção (push cron)
 [x] Rate limit: login (5/15min IP), register (3/h IP)
 [x] Rate limit: chat (20/dia usuário), progress (10/h usuário)

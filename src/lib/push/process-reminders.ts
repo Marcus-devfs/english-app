@@ -13,6 +13,7 @@ export interface ProcessRemindersResult {
   matched: number;
   skipped: Record<string, number>;
   force: boolean;
+  hint?: string;
 }
 
 function bumpSkip(skipped: Record<string, number>, reason: string) {
@@ -105,5 +106,9 @@ export async function processReminders(force = false): Promise<ProcessRemindersR
     matched,
     skipped,
     force,
+    hint:
+      sent === 0
+        ? "Slots: 8h e 19h–21h (fuso do usuário). daily_cap_reached = já recebeu 2 hoje. wrong_slot = fora do horário. already_studied_today = praticou hoje."
+        : undefined,
   };
 }
