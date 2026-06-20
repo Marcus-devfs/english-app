@@ -19,7 +19,7 @@ export interface TrailModule {
 
 const TRAIL_MODULES: TrailModule[] = [
   {
-    id: "mod1",
+    id: "mod-career",
     title: "Carreira internacional",
     goal: "career_abroad",
     lessons: [
@@ -42,14 +42,64 @@ const TRAIL_MODULES: TrailModule[] = [
       { id: "t5", title: "System design basics", duration: "10 min", xp: 55 },
     ],
   },
+  {
+    id: "mod-travel",
+    title: "Inglês para viagens",
+    goal: "travel",
+    lessons: [
+      { id: "tr1", title: "No aeroporto", duration: "5 min", xp: 40 },
+      { id: "tr2", title: "Hotel check-in", duration: "5 min", xp: 40 },
+      { id: "tr3", title: "Pedindo direções", duration: "5 min", xp: 40 },
+      { id: "tr4", title: "No restaurante", duration: "6 min", xp: 45 },
+      { id: "tr5", title: "Imprevistos na viagem", duration: "8 min", xp: 50 },
+    ],
+  },
+  {
+    id: "mod-business",
+    title: "Inglês para negócios",
+    goal: "business",
+    lessons: [
+      { id: "b1", title: "Emails profissionais", duration: "5 min", xp: 40 },
+      { id: "b2", title: "Reuniões virtuais", duration: "5 min", xp: 40 },
+      { id: "b3", title: "Apresentando ideias", duration: "6 min", xp: 45 },
+      { id: "b4", title: "Negociação", duration: "8 min", xp: 50 },
+      { id: "b5", title: "Feedback ao time", duration: "6 min", xp: 45 },
+    ],
+  },
+  {
+    id: "mod-academic",
+    title: "Inglês acadêmico",
+    goal: "academic",
+    lessons: [
+      { id: "a1", title: "Apresentações em sala", duration: "5 min", xp: 40 },
+      { id: "a2", title: "Debates e argumentos", duration: "6 min", xp: 45 },
+      { id: "a3", title: "Leitura de artigos", duration: "8 min", xp: 50 },
+      { id: "a4", title: "Escrevendo abstracts", duration: "8 min", xp: 50 },
+      { id: "a5", title: "Entrevistas acadêmicas", duration: "6 min", xp: 45 },
+    ],
+  },
+  {
+    id: "mod-conversation",
+    title: "Conversação fluente",
+    goal: "conversation",
+    lessons: [
+      { id: "c1", title: "Cumprimentos naturais", duration: "5 min", xp: 40 },
+      { id: "c2", title: "Contando seu dia", duration: "5 min", xp: 40 },
+      { id: "c3", title: "Opiniões e preferências", duration: "6 min", xp: 45 },
+      { id: "c4", title: "Convites e planos", duration: "6 min", xp: 45 },
+      { id: "c5", title: "Conversas mais longas", duration: "8 min", xp: 50 },
+    ],
+  },
 ];
 
 export function getTrailForUser(
   goal: LearningGoal,
   lessonsCompleted: number
-): { module: TrailModule; lessons: TrailLesson[] } {
+): { module: TrailModule; lessons: TrailLesson[]; currentIndex: number } {
   const module =
     TRAIL_MODULES.find((m) => m.goal === goal) ?? TRAIL_MODULES[0];
+
+  const currentIndex = Math.min(lessonsCompleted, module.lessons.length - 1);
 
   const lessons: TrailLesson[] = module.lessons.map((lesson, index) => {
     let status: TrailLessonStatus = "locked";
@@ -58,7 +108,15 @@ export function getTrailForUser(
     return { ...lesson, status };
   });
 
-  return { module, lessons };
+  return { module, lessons, currentIndex };
+}
+
+export function getTodayLabel(): string {
+  return new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 }
 
 export const PHRASE_OF_THE_DAY = {

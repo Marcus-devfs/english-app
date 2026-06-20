@@ -26,6 +26,7 @@ export type TranslationKey =
   | "nav.home"
   | "nav.trail"
   | "nav.ai"
+  | "nav.conversation"
   | "nav.vocab"
   | "nav.profile"
   | "profile.title"
@@ -61,8 +62,9 @@ export const translations: Record<AppLanguage, Record<TranslationKey, string>> =
   pt: {
     "nav.home": "Início",
     "nav.trail": "Trilha",
-    "nav.ai": "IA",
-    "nav.vocab": "Vocab",
+    "nav.ai": "Conversa",
+    "nav.conversation": "Conversa",
+    "nav.vocab": "Vocabulário",
     "nav.profile": "Perfil",
     "profile.title": "Meu perfil",
     "profile.account": "Conta",
@@ -96,8 +98,9 @@ export const translations: Record<AppLanguage, Record<TranslationKey, string>> =
   en: {
     "nav.home": "Home",
     "nav.trail": "Trail",
-    "nav.ai": "AI",
-    "nav.vocab": "Vocab",
+    "nav.ai": "Conversation",
+    "nav.conversation": "Conversation",
+    "nav.vocab": "Vocabulary",
     "nav.profile": "Profile",
     "profile.title": "My profile",
     "profile.account": "Account",

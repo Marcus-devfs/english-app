@@ -52,6 +52,6 @@ export async function checkRateLimit(
 export const RATE_LIMITS = {
   login: { limit: 5, windowMs: 15 * 60 * 1000 },
   register: { limit: 3, windowMs: 60 * 60 * 1000 },
-  chatDaily: { limit: 20, windowMs: 24 * 60 * 60 * 1000 },
+  chatDaily: { limit: 50, windowMs: 24 * 60 * 60 * 1000 },
   progressHourly: { limit: 10, windowMs: 60 * 60 * 1000 },
 } as const;

@@ -559,6 +559,33 @@ export function getDailyLesson(goal: LearningGoal, level: CEFRLevel): DailyLesso
   return DAILY_LESSONS[goal]?.[level] ?? DAILY_LESSONS.conversation[level];
 }
 
+const TRAIL_LEVELS: CEFRLevel[] = ["A1", "A2", "B1", "B2", "C1"];
+
+export function getDailyLessonForTrail(
+  goal: LearningGoal,
+  userLevel: CEFRLevel,
+  trailIndex: number
+): DailyLesson {
+  const level = TRAIL_LEVELS[Math.min(trailIndex, TRAIL_LEVELS.length - 1)] ?? userLevel;
+  const base =
+    DAILY_LESSONS[goal]?.[level] ??
+    DAILY_LESSONS[goal]?.[userLevel] ??
+    DAILY_LESSONS.conversation[userLevel];
+  return { ...base, id: `${base.id}-t${trailIndex}` };
+}
+
+export function getVocabularyForGoal(goal: LearningGoal) {
+  const primary = VOCABULARY_LESSONS.filter((l) => l.goals.includes(goal));
+  if (primary.length > 0) return primary;
+  return VOCABULARY_LESSONS.filter((l) => l.goals.includes("conversation"));
+}
+
+export function getGrammarForGoal(goal: LearningGoal) {
+  const primary = GRAMMAR_LESSONS.filter((l) => l.goals.includes(goal));
+  if (primary.length > 0) return primary;
+  return GRAMMAR_LESSONS.slice(0, 2);
+}
+
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: "quiz1",
@@ -627,6 +654,7 @@ export function getQuizForGoal(goal: LearningGoal, level: CEFRLevel): QuizQuesti
 export const GRAMMAR_LESSONS = [
   {
     id: "gram1",
+    goals: ["tech_career", "career_abroad", "business", "conversation"] as LearningGoal[],
     title: "Present Simple vs Present Continuous",
     level: "A2" as CEFRLevel,
     content: "Use Present Simple for habits and facts. Use Present Continuous for actions happening now.",
@@ -641,6 +669,7 @@ export const GRAMMAR_LESSONS = [
   },
   {
     id: "gram2",
+    goals: ["career_abroad", "business", "academic", "tech_career"] as LearningGoal[],
     title: "Past Simple vs Present Perfect",
     level: "B1" as CEFRLevel,
     content: "Past Simple for completed actions with specific time. Present Perfect for experiences without specific time.",
@@ -655,6 +684,7 @@ export const GRAMMAR_LESSONS = [
   },
   {
     id: "gram3",
+    goals: ["business", "career_abroad", "academic"] as LearningGoal[],
     title: "Conditionals: First & Second",
     level: "B2" as CEFRLevel,
     content: "First conditional for real possibilities. Second conditional for hypothetical situations.",
@@ -672,6 +702,7 @@ export const GRAMMAR_LESSONS = [
 export const VOCABULARY_LESSONS = [
   {
     id: "vocab1",
+    goals: ["tech_career"] as LearningGoal[],
     title: "Tech Interview Vocabulary",
     level: "B1" as CEFRLevel,
     words: [
@@ -684,6 +715,7 @@ export const VOCABULARY_LESSONS = [
   },
   {
     id: "vocab2",
+    goals: ["business", "career_abroad"] as LearningGoal[],
     title: "Business Email Phrases",
     level: "B2" as CEFRLevel,
     words: [
@@ -696,6 +728,7 @@ export const VOCABULARY_LESSONS = [
   },
   {
     id: "vocab3",
+    goals: ["travel"] as LearningGoal[],
     title: "Travel Essentials",
     level: "A2" as CEFRLevel,
     words: [
@@ -704,6 +737,45 @@ export const VOCABULARY_LESSONS = [
       { word: "layover", meaning: "escala/conexão", example: "I have a 3-hour layover in Dubai." },
       { word: "reservation", meaning: "reserva", example: "I have a reservation under Silva." },
       { word: "sightseeing", meaning: "passeio turístico", example: "We did some sightseeing in Paris." },
+    ],
+  },
+  {
+    id: "vocab4",
+    goals: ["career_abroad"] as LearningGoal[],
+    title: "International Career",
+    level: "B1" as CEFRLevel,
+    words: [
+      { word: "relocation", meaning: "mudança internacional", example: "I'm open to relocation for the right role." },
+      { word: "work permit", meaning: "visto de trabalho", example: "Do you need a work permit for this position?" },
+      { word: "networking", meaning: "networking", example: "Networking helped me find opportunities abroad." },
+      { word: "cultural fit", meaning: "adaptação cultural", example: "They value cultural fit in their hiring process." },
+      { word: "remote-first", meaning: "empresa remota", example: "It's a remote-first company with global teams." },
+    ],
+  },
+  {
+    id: "vocab5",
+    goals: ["academic"] as LearningGoal[],
+    title: "Academic English",
+    level: "B2" as CEFRLevel,
+    words: [
+      { word: "thesis", meaning: "tese", example: "I'm writing my thesis on climate policy." },
+      { word: "peer-reviewed", meaning: "revisado por pares", example: "Publish in a peer-reviewed journal." },
+      { word: "hypothesis", meaning: "hipótese", example: "Our hypothesis was supported by the data." },
+      { word: "bibliography", meaning: "bibliografia", example: "Check the bibliography for more sources." },
+      { word: "findings", meaning: "resultados", example: "The findings suggest a strong correlation." },
+    ],
+  },
+  {
+    id: "vocab6",
+    goals: ["conversation"] as LearningGoal[],
+    title: "Everyday Conversation",
+    level: "A2" as CEFRLevel,
+    words: [
+      { word: "catch up", meaning: "colocar o papo em dia", example: "Let's catch up over coffee sometime." },
+      { word: "how's it going", meaning: "como vai?", example: "Hey! How's it going?" },
+      { word: "by the way", meaning: "a propósito", example: "By the way, did you see the game?" },
+      { word: "sounds good", meaning: "parece bom", example: "Dinner at 7? Sounds good!" },
+      { word: "I'm looking forward to", meaning: "estou ansioso por", example: "I'm looking forward to the weekend." },
     ],
   },
 ];

@@ -4,9 +4,11 @@ import { useEffect, useState, useRef } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Send, Bot, User, Mic, Square } from "lucide-react";
+import { Send, Bot, User, Mic, Square, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useVoiceRecorder } from "@/lib/hooks/use-voice-recorder";
+import { getGoalGreeting } from "@/services/ai.service";
+import { GOAL_LABELS, type LearningGoal, type CEFRLevel } from "@/types";
 
 interface Message {
   _id?: string;
@@ -19,6 +21,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [goal, setGoal] = useState<LearningGoal>("conversation");
+  const [aiConfigured, setAiConfigured] = useState(true);
+  const [chatError, setChatError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const { isRecording, displayText, start, stop } = useVoiceRecorder();
 
@@ -26,14 +31,25 @@ export default function ChatPage() {
     fetch("/api/chat")
       .then((r) => r.json())
       .then((data) => {
-        if (data.success && data.data.messages.length > 0) {
+        if (!data.success) return;
+
+        const userGoal = (data.data.user?.goal ?? "conversation") as LearningGoal;
+        const userLevel = (data.data.user?.level ?? "B1") as CEFRLevel;
+        const userName = data.data.user?.name ?? "there";
+        setGoal(userGoal);
+        setAiConfigured(data.data.aiConfigured !== false);
+
+        if (data.data.messages.length > 0) {
           setMessages(data.data.messages);
         } else {
           setMessages([
             {
               role: "assistant",
-              content:
-                "Hello! I'm Alex, your English teacher. Let's practice! Tell me about yourself or what you did today. Don't worry about mistakes — I'm here to help! 😊",
+              content: getGoalGreeting({
+                goal: userGoal,
+                level: userLevel,
+                userName,
+              }),
             },
           ]);
         }
@@ -57,6 +73,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+    setChatError("");
 
     try {
       const res = await fetch("/api/chat", {
@@ -67,6 +84,10 @@ export default function ChatPage() {
       const data = await res.json();
       if (data.success) {
         setMessages((prev) => [...prev, data.data.message]);
+        if (data.data.aiMode === "mock") setAiConfigured(false);
+      } else {
+        setChatError(data.error ?? "Não foi possível enviar a mensagem.");
+        setMessages((prev) => prev.slice(0, -1));
       }
     } finally {
       setLoading(false);
@@ -88,14 +109,28 @@ export default function ChatPage() {
       <div className="flex h-full min-h-0 flex-1 flex-col">
         <div className="flex items-center gap-3 border-b border-slate-100 bg-white px-4 py-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-norte-blue">
-            <Bot className="h-5 w-5 text-white" />
+            <MessageCircle className="h-5 w-5 text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-semibold text-norte-ink">Alex — Professor IA</h1>
-            <p className="text-xs text-slate-500">Correções em tempo real</p>
+            <h1 className="truncate font-semibold text-norte-ink">Conversa com Alex</h1>
+            <p className="text-xs text-slate-500 truncate">
+              Prática de {GOAL_LABELS[goal].toLowerCase()} · correções em tempo real
+            </p>
           </div>
           <Badge variant="success">Online</Badge>
         </div>
+
+        {!aiConfigured && (
+          <div className="mx-4 mt-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+            Modo demonstração — configure <strong>AI_API_KEY</strong> no servidor para conversas reais com IA.
+          </div>
+        )}
+
+        {chatError && (
+          <div className="mx-4 mt-3 rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+            {chatError}
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <div className="space-y-4">

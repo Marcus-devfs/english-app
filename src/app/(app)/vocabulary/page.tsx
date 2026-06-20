@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Loading } from "@/components/ui/loading";
 import { BookOpen, Library, Volume2 } from "lucide-react";
+import { GOAL_LABELS, type LearningGoal } from "@/types";
 
 interface GrammarLesson {
   id: string;
@@ -25,6 +27,8 @@ interface VocabLesson {
 export default function VocabularyPage() {
   const [grammar, setGrammar] = useState<GrammarLesson[]>([]);
   const [vocabulary, setVocabulary] = useState<VocabLesson[]>([]);
+  const [goal, setGoal] = useState<LearningGoal>("conversation");
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"vocabulary" | "grammar">("vocabulary");
   const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set());
 
@@ -35,7 +39,9 @@ export default function VocabularyPage() {
         if (data.success) {
           setGrammar(data.data.grammarLessons);
           setVocabulary(data.data.vocabularyLessons);
+          setGoal(data.data.user.goal ?? "conversation");
         }
+        setLoading(false);
       });
   }, []);
 
@@ -56,12 +62,25 @@ export default function VocabularyPage() {
     });
   }
 
+  if (loading) {
+    return (
+      <AppShell>
+        <Loading />
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <div className="flex-1 overflow-y-auto p-4 pb-6 space-y-6">
         <div>
+          <Badge variant="info" className="mb-2">
+            {GOAL_LABELS[goal]}
+          </Badge>
           <h1 className="text-2xl font-bold text-slate-900">Estudo de idioma</h1>
-          <p className="text-slate-600 mt-1">Vocabulário e gramática para o seu objetivo</p>
+          <p className="text-slate-600 mt-1">
+            Vocabulário e gramática adaptados ao seu objetivo
+          </p>
         </div>
 
         <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
@@ -86,32 +105,39 @@ export default function VocabularyPage() {
         </div>
 
         {activeTab === "vocabulary" &&
-          vocabulary.map((lesson) => (
-            <Card key={lesson.id}>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle>{lesson.title}</CardTitle>
-                  <Badge variant="level">{lesson.level}</Badge>
-                </div>
-                <div className="space-y-3">
-                  {lesson.words.map(({ word, meaning, example }) => (
-                    <div key={word} className="p-4 rounded-xl bg-slate-50 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-900">{word}</span>
-                        <button
-                          onClick={() => speak(word)}
-                          className="text-norte-blue hover:text-norte-blue/80"
-                        >
-                          <Volume2 className="h-4 w-4" />
-                        </button>
-                        <span className="text-sm text-slate-500 ml-auto">{meaning}</span>
+          (vocabulary.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-8">
+              Conteúdo em breve para o seu objetivo.
+            </p>
+          ) : (
+            vocabulary.map((lesson) => (
+              <Card key={lesson.id}>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>{lesson.title}</CardTitle>
+                    <Badge variant="level">{lesson.level}</Badge>
+                  </div>
+                  <div className="space-y-3">
+                    {lesson.words.map(({ word, meaning, example }) => (
+                      <div key={word} className="p-4 rounded-xl bg-slate-50 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-900">{word}</span>
+                          <button
+                            type="button"
+                            onClick={() => speak(word)}
+                            className="text-norte-blue hover:text-norte-blue/80"
+                          >
+                            <Volume2 className="h-4 w-4" />
+                          </button>
+                          <span className="text-sm text-slate-500 ml-auto">{meaning}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 italic">&ldquo;{example}&rdquo;</p>
                       </div>
-                      <p className="text-sm text-slate-600 italic">&ldquo;{example}&rdquo;</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
           ))}
 
         {activeTab === "grammar" &&
@@ -126,7 +152,10 @@ export default function VocabularyPage() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-slate-600">Exemplos:</p>
                   {lesson.examples.map((ex) => (
-                    <p key={ex} className="text-sm text-norte-blue bg-norte-blue-light px-3 py-2 rounded-lg">
+                    <p
+                      key={ex}
+                      className="text-sm text-norte-blue bg-norte-blue-light px-3 py-2 rounded-lg"
+                    >
                       {ex}
                     </p>
                   ))}
@@ -139,6 +168,7 @@ export default function VocabularyPage() {
                       <div key={id} className="p-3 rounded-xl border border-slate-200">
                         <p className="text-sm text-slate-800">{ex.prompt}</p>
                         <button
+                          type="button"
                           onClick={() => toggleAnswer(id)}
                           className="text-xs text-norte-blue mt-2 hover:underline"
                         >

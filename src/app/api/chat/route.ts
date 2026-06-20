@@ -4,7 +4,7 @@ import { User } from "@/models/User";
 import { ChatMessage } from "@/models/ChatMessage";
 import { getSession } from "@/lib/auth/session";
 import { chatMessageSchema } from "@/lib/validations/auth";
-import { getAIResponse } from "@/services/ai.service";
+import { getAIResponse, isAIConfigured } from "@/services/ai.service";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
 import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
 import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
@@ -16,12 +16,23 @@ export async function GET() {
     if (!session) return apiError("Não autenticado", 401);
 
     await connectDB();
+    const user = await User.findById(session.userId);
     const messages = await ChatMessage.find({ userId: session.userId })
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
 
-    return apiSuccess({ messages: messages.reverse() });
+    return apiSuccess({
+      messages: messages.reverse(),
+      aiConfigured: isAIConfigured(),
+      user: user
+        ? {
+            name: user.name,
+            goal: user.goal ?? "conversation",
+            level: user.diagnosedLevel ?? "B1",
+          }
+        : null,
+    });
   } catch (error) {
     return handleApiError(error);
   }
@@ -89,6 +100,7 @@ export async function POST(request: NextRequest) {
 
     return apiSuccess({
       message: assistantMsg,
+      aiMode: aiResponse.mode,
     });
   } catch (error) {
     return handleApiError(error);
