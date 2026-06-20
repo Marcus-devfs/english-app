@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 
 const PUBLIC_ROUTES = ["/", "/welcome", "/auth", "/login", "/register", "/~offline"];
 const AUTH_API = ["/api/auth/login", "/api/auth/register"];
+const CRON_API = ["/api/push/reminders"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -11,6 +12,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/auth/register") ||
+    CRON_API.some((r) => pathname.startsWith(r)) ||
     pathname.startsWith("/serwist/") ||
     pathname.startsWith("/icons/") ||
     pathname === "/manifest.webmanifest" ||
