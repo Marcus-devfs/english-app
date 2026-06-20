@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
-import { Home, Map, MessageCircle, User } from "lucide-react";
+import { Home, Map, BookOpen, MessageCircle, User } from "lucide-react";
 import { useLocale } from "@/lib/i18n/locale-provider";
 
 export const TAB_BAR_HEIGHT = "4.5rem";
@@ -11,6 +11,7 @@ export const TAB_BAR_HEIGHT = "4.5rem";
 const tabs = [
   { href: "/dashboard", labelKey: "nav.home" as const, icon: Home },
   { href: "/trilha", labelKey: "nav.trail" as const, icon: Map },
+  { href: "/vocabulary", labelKey: "nav.vocab" as const, icon: BookOpen },
   { href: "/chat", labelKey: "nav.ai" as const, icon: MessageCircle },
   { href: "/profile", labelKey: "nav.profile" as const, icon: User },
 ];
@@ -25,12 +26,12 @@ export function TabBar() {
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       aria-label="Navegação principal"
     >
-      <div className="mx-auto flex h-[4.5rem] max-w-lg items-stretch px-2">
+      <div className="mx-auto flex h-[4.5rem] max-w-lg items-stretch px-1">
         {tabs.map(({ href, labelKey, icon: Icon }) => {
           const active =
             pathname === href ||
             pathname.startsWith(`${href}/`) ||
-            (href === "/dashboard" && (pathname === "/lessons" || pathname === "/quiz" || pathname === "/vocabulary"));
+            (href === "/dashboard" && (pathname === "/lessons" || pathname === "/quiz"));
 
           return (
             <Link
