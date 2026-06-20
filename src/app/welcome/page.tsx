@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { Brain, MessageCircle, Map, ChevronRight } from "lucide-react";
-
-const WELCOME_KEY = "norte_welcome_seen";
+import { WELCOME_KEY } from "@/lib/constants/auth";
 
 const slides = [
   {
@@ -38,16 +36,11 @@ export default function WelcomePage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
 
-  function finishWelcome(path: "/register" | "/login") {
+  function finishWelcome(tab: "login" | "register") {
     localStorage.setItem(WELCOME_KEY, "1");
-    router.push(path);
+    router.push(`/auth?tab=${tab}`);
   }
 
-  if (step === -1) {
-    return null;
-  }
-
-  // Splash screen (step 0 style from mockup)
   if (step === 0) {
     return (
       <div className="mx-auto flex h-dvh max-w-lg flex-col overflow-hidden bg-norte-ink">
@@ -77,7 +70,7 @@ export default function WelcomePage() {
           <p className="text-center text-sm text-slate-400">
             Já tenho conta ·{" "}
             <button
-              onClick={() => finishWelcome("/login")}
+              onClick={() => finishWelcome("login")}
               className="text-white font-medium hover:underline"
             >
               Entrar
@@ -96,7 +89,7 @@ export default function WelcomePage() {
     <div className="mx-auto flex h-dvh max-w-lg flex-col overflow-hidden bg-norte-bg">
       <div className="flex justify-end p-4">
         <button
-          onClick={() => finishWelcome("/register")}
+          onClick={() => finishWelcome("register")}
           className="text-sm text-slate-500 hover:text-norte-ink"
         >
           Pular
@@ -104,7 +97,12 @@ export default function WelcomePage() {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-        <div className={cn("h-20 w-20 rounded-3xl flex items-center justify-center mb-8", slide.color)}>
+        <div
+          className={cn(
+            "h-20 w-20 rounded-3xl flex items-center justify-center mb-8",
+            slide.color
+          )}
+        >
           <Icon className="h-10 w-10" />
         </div>
         <h2 className="text-2xl font-bold text-norte-ink mb-3">{slide.title}</h2>
@@ -126,7 +124,7 @@ export default function WelcomePage() {
 
         <Button
           className="w-full h-12"
-          onClick={() => (isLast ? finishWelcome("/register") : setStep((s) => s + 1))}
+          onClick={() => (isLast ? finishWelcome("register") : setStep((s) => s + 1))}
         >
           {isLast ? "Criar minha conta" : "Continuar"}
           {!isLast && <ChevronRight className="h-4 w-4" />}
@@ -135,5 +133,3 @@ export default function WelcomePage() {
     </div>
   );
 }
-
-export { WELCOME_KEY };

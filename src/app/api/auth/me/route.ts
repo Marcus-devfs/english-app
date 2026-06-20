@@ -22,6 +22,7 @@ export async function GET() {
         diagnosedLevel: user.diagnosedLevel,
         onboardingCompleted: user.onboardingCompleted,
         progress: user.progress,
+        preferences: user.preferences,
       },
     });
   } catch (error) {

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 
-const PUBLIC_ROUTES = ["/", "/welcome", "/login", "/register", "/~offline"];
-const ONBOARDING_ROUTES = ["/onboarding"];
+const PUBLIC_ROUTES = ["/", "/welcome", "/auth", "/login", "/register", "/~offline"];
 const AUTH_API = ["/api/auth/login", "/api/auth/register"];
 
 export async function middleware(request: NextRequest) {
@@ -31,16 +30,23 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC_ROUTES.some(
     (r) => pathname === r || pathname.startsWith(r + "/")
   );
-  const isOnboarding = ONBOARDING_ROUTES.some((r) => pathname.startsWith(r));
   const isAuthApi = AUTH_API.some((r) => pathname.startsWith(r));
 
   if (isAuthApi) return NextResponse.next();
 
+  // Sem sessão → entry point (não login direto)
   if (!session && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (session && (pathname === "/login" || pathname === "/register")) {
+  // Com sessão → não ficar em telas públicas de auth
+  if (
+    session &&
+    (pathname === "/login" ||
+      pathname === "/register" ||
+      pathname === "/auth" ||
+      pathname === "/welcome")
+  ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

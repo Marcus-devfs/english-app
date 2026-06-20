@@ -1,5 +1,13 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import type { CEFRLevel, LearningGoal, UserProgress } from "@/types";
+import type { UserPreferences } from "@/lib/i18n/translations";
+import { DEFAULT_PREFERENCES } from "@/lib/i18n/translations";
+
+export interface PushSubscriptionData {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  createdAt: Date;
+}
 
 export interface IUser extends Document {
   name: string;
@@ -10,6 +18,8 @@ export interface IUser extends Document {
   diagnosedLevel?: CEFRLevel;
   onboardingCompleted: boolean;
   progress: UserProgress;
+  preferences: UserPreferences;
+  pushSubscriptions: PushSubscriptionData[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +42,30 @@ const ProgressSchema = new Schema(
   { _id: false }
 );
 
+const PreferencesSchema = new Schema(
+  {
+    language: { type: String, enum: ["pt", "en"], default: "pt" },
+    practiceDaysPerWeek: { type: Number, default: 5, min: 1, max: 7 },
+    practiceMinutesPerDay: { type: Number, default: 15, min: 5, max: 120 },
+    notificationsEnabled: { type: Boolean, default: false },
+    reminderHour: { type: Number, default: 9, min: 0, max: 23 },
+    reminderMinute: { type: Number, default: 0, min: 0, max: 59 },
+  },
+  { _id: false }
+);
+
+const PushSubscriptionSchema = new Schema(
+  {
+    endpoint: { type: String, required: true },
+    keys: {
+      p256dh: { type: String, required: true },
+      auth: { type: String, required: true },
+    },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
@@ -48,6 +82,8 @@ const UserSchema = new Schema<IUser>(
     diagnosedLevel: { type: String },
     onboardingCompleted: { type: Boolean, default: false },
     progress: { type: ProgressSchema, default: () => ({}) },
+    preferences: { type: PreferencesSchema, default: () => ({ ...DEFAULT_PREFERENCES }) },
+    pushSubscriptions: { type: [PushSubscriptionSchema], default: [] },
   },
   { timestamps: true }
 );

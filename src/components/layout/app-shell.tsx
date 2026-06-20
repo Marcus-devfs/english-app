@@ -2,18 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Flame } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Flame } from "lucide-react";
 import { TabBar, TAB_BAR_HEIGHT } from "@/components/layout/tab-bar";
-
-const PAGE_TITLES: Record<string, string> = {
-  "/dashboard": "Início",
-  "/trilha": "Sua trilha",
-  "/lessons": "Lição do dia",
-  "/quiz": "Quiz",
-  "/vocabulary": "Vocabulário",
-  "/chat": "Conversar com IA",
-};
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { cn } from "@/lib/utils/cn";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -29,16 +22,21 @@ export function AppShell({
   showHeader = true,
 }: AppShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const { t } = useLocale();
+
+  const pageTitles: Record<string, string> = {
+    "/dashboard": t("nav.home"),
+    "/trilha": t("nav.trail"),
+    "/lessons": t("nav.home"),
+    "/quiz": "Quiz",
+    "/vocabulary": t("nav.vocab"),
+    "/chat": t("nav.ai"),
+    "/profile": t("nav.profile"),
+  };
 
   const pageTitle =
-    Object.entries(PAGE_TITLES).find(([path]) => pathname.startsWith(path))?.[1] ??
+    Object.entries(pageTitles).find(([path]) => pathname.startsWith(path))?.[1] ??
     "Norte";
-
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-  }
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-norte-bg shadow-xl lg:my-4 lg:min-h-[calc(100dvh-2rem)] lg:rounded-[2rem] lg:border lg:border-slate-200 lg:overflow-hidden">
@@ -58,7 +56,7 @@ export function AppShell({
               </p>
               {userName && pathname === "/dashboard" && (
                 <p className="truncate text-[11px] text-slate-500">
-                  Olá, {userName.split(" ")[0]}
+                  {userName.split(" ")[0]}
                 </p>
               )}
             </div>
@@ -71,13 +69,17 @@ export function AppShell({
                 {streak}
               </div>
             )}
-            <button
-              onClick={handleLogout}
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 active:scale-95"
-              aria-label="Sair"
+            <Link
+              href="/profile"
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold transition-colors active:scale-95",
+                pathname === "/profile"
+                  ? "bg-norte-blue text-white"
+                  : "bg-norte-blue-light text-norte-blue hover:bg-norte-blue/10"
+              )}
             >
-              <LogOut className="h-[18px] w-[18px]" />
-            </button>
+              {userName ? userName[0]?.toUpperCase() : "?"}
+            </Link>
           </div>
         </header>
       )}

@@ -3,13 +3,15 @@ import { getSession } from "@/lib/auth/session";
 import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
 
+import { AppProviders } from "@/components/providers/app-providers";
+
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirect("/");
 
   try {
     await connectDB();
@@ -21,5 +23,5 @@ export default async function AppLayout({
     // DB unavailable during dev — allow access
   }
 
-  return <>{children}</>;
+  return <AppProviders>{children}</AppProviders>;
 }

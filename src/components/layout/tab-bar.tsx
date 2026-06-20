@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
-import { Home, Map, MessageCircle, BookOpen } from "lucide-react";
+import { Home, Map, MessageCircle, User } from "lucide-react";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 export const TAB_BAR_HEIGHT = "4.5rem";
 
 const tabs = [
-  { href: "/dashboard", label: "Início", icon: Home },
-  { href: "/trilha", label: "Trilha", icon: Map },
-  { href: "/chat", label: "IA", icon: MessageCircle },
-  { href: "/vocabulary", label: "Vocab", icon: BookOpen },
+  { href: "/dashboard", labelKey: "nav.home" as const, icon: Home },
+  { href: "/trilha", labelKey: "nav.trail" as const, icon: Map },
+  { href: "/chat", labelKey: "nav.ai" as const, icon: MessageCircle },
+  { href: "/profile", labelKey: "nav.profile" as const, icon: User },
 ];
 
 export function TabBar() {
   const pathname = usePathname();
+  const { t } = useLocale();
 
   return (
     <nav
@@ -24,11 +26,11 @@ export function TabBar() {
       aria-label="Navegação principal"
     >
       <div className="mx-auto flex h-[4.5rem] max-w-lg items-stretch px-2">
-        {tabs.map(({ href, label, icon: Icon }) => {
+        {tabs.map(({ href, labelKey, icon: Icon }) => {
           const active =
             pathname === href ||
             pathname.startsWith(`${href}/`) ||
-            (href === "/dashboard" && pathname === "/lessons");
+            (href === "/dashboard" && (pathname === "/lessons" || pathname === "/quiz" || pathname === "/vocabulary"));
 
           return (
             <Link
@@ -49,7 +51,7 @@ export function TabBar() {
                 <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.5 : 2} />
               </span>
               <span className={cn("text-[10px] font-medium leading-none", active && "font-semibold")}>
-                {label}
+                {t(labelKey)}
               </span>
             </Link>
           );
