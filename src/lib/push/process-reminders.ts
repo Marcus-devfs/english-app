@@ -128,7 +128,7 @@ export async function processReminders(force = false): Promise<ProcessRemindersR
     force,
     hint:
       sent === 0
-        ? "Slots: 8h, 12h, 19h e 21h (fuso do usuário). daily_cap_reached = já recebeu 4 hoje. cooldown = enviado há menos de 2h. wrong_slot = fora do horário. already_studied_today = praticou hoje."
+        ? "quiet_hours = 22h–7h (fuso do usuário). daily_cap_reached = limite diário. cooldown = enviado há menos de 2h. already_studied_today = praticou hoje. before_reminder_hour = antes do horário escolhido."
         : undefined,
   };
 }

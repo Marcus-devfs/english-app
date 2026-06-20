@@ -1,8 +1,6 @@
 import {
-  DAILY_REMINDER_SLOTS,
   HIGH_STREAK_THRESHOLD,
   isAnyReminderHour,
-  isEveningReminderSlot,
   MAX_DAILY_PUSHES,
   MAX_DAILY_PUSHES_HIGH_STREAK,
   MIN_HOURS_BETWEEN_PUSHES,
@@ -33,45 +31,6 @@ export function getEffectiveSentCount(
 
 function hoursSince(date: Date): number {
   return (Date.now() - date.getTime()) / (1000 * 60 * 60);
-}
-
-function slotIndex(hour: number): number {
-  return DAILY_REMINDER_SLOTS.indexOf(hour as (typeof DAILY_REMINDER_SLOTS)[number]);
-}
-
-/** Retorna a hora do slot para o próximo push ou null se fora da janela. */
-export function getExpectedSlotHour(
-  reminderHour: number,
-  sentCount: number,
-  currentHour: number
-): number | null {
-  if (sentCount >= DAILY_REMINDER_SLOTS.length) return null;
-
-  const targetSlot = DAILY_REMINDER_SLOTS[sentCount];
-
-  if (currentHour === targetSlot) return currentHour;
-
-  // Catch-up: perdeu slot anterior — ainda pode receber em slot posterior hoje
-  if (currentHour > targetSlot) {
-    const currentIdx = slotIndex(currentHour);
-    const targetIdx = slotIndex(targetSlot);
-
-    if (currentIdx >= 0 && currentIdx >= targetIdx) {
-      return currentHour;
-    }
-
-    if (targetSlot >= 19 && isEveningReminderSlot(currentHour)) {
-      // 3º push (19h): flexível 19–21h; 4º push (21h): só às 21h
-      if (targetSlot === 21 && currentHour !== 21) return null;
-      return currentHour;
-    }
-
-    if (sentCount === 0 && isEveningReminderSlot(currentHour)) {
-      return currentHour;
-    }
-  }
-
-  return null;
 }
 
 export interface EvaluateScheduleInput {
@@ -126,24 +85,14 @@ export function evaluateReminderSchedule(input: EvaluateScheduleInput): Schedule
     return { shouldSend: false, reason: "cooldown" };
   }
 
-  let expectedSlot: number | null;
-
-  if (isAnyReminderHour(reminderHour)) {
-    expectedSlot = getExpectedSlotHour(reminderHour, sentCount, currentHour);
-  } else if (sentCount === 0) {
-    expectedSlot = currentHour === reminderHour ? reminderHour : null;
-  } else if (reminderHour >= 19) {
-    expectedSlot = null;
-  } else {
-    expectedSlot = getExpectedSlotHour(reminderHour, sentCount, currentHour);
-  }
-
-  if (!force && expectedSlot === null) {
-    return { shouldSend: false, reason: "no_slot_for_count" };
-  }
-
-  if (!force && expectedSlot !== currentHour) {
-    return { shouldSend: false, reason: "wrong_slot" };
+  // Horário personalizado: primeiro push só após a hora escolhida (fuso local)
+  if (
+    !force &&
+    !isAnyReminderHour(reminderHour) &&
+    sentCount === 0 &&
+    currentHour < reminderHour
+  ) {
+    return { shouldSend: false, reason: "before_reminder_hour" };
   }
 
   const type = resolveNotificationType(sentCount, streakDays);
@@ -152,6 +101,6 @@ export function evaluateReminderSchedule(input: EvaluateScheduleInput): Schedule
     shouldSend: true,
     reason: force ? "forced" : "scheduled",
     type,
-    slotHour: expectedSlot ?? currentHour,
+    slotHour: currentHour,
   };
 }

@@ -2,12 +2,13 @@ const DEFAULT_TIMEZONE = "America/Sao_Paulo";
 
 export function getCurrentHourInTimezone(timezone = DEFAULT_TIMEZONE, date = new Date()): number {
   try {
-    const hour = new Intl.DateTimeFormat("en-US", {
+    const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
       hour: "numeric",
       hour12: false,
-    }).format(date);
-    return parseInt(hour, 10);
+    }).formatToParts(date);
+    const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10);
+    return hour === 24 ? 0 : hour;
   } catch {
     return date.getHours();
   }
