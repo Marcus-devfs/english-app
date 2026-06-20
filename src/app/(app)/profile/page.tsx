@@ -11,6 +11,7 @@ import { useLocale } from "@/lib/i18n/locale-provider";
 import { GOAL_LABELS, type LearningGoal } from "@/types";
 import { subscribeToPush, unsubscribeFromPush } from "@/lib/push/client";
 import { Bell, BellOff, LogOut, ChevronRight } from "lucide-react";
+import { REMINDER_ANY_HOUR } from "@/lib/constants/push";
 import { cn } from "@/lib/utils/cn";
 
 interface ProfileUser {
@@ -40,7 +41,7 @@ export default function ProfilePage() {
   const [practiceDays, setPracticeDays] = useState(5);
   const [practiceMinutes, setPracticeMinutes] = useState(15);
   const [notifications, setNotifications] = useState(false);
-  const [reminderHour, setReminderHour] = useState(9);
+  const [reminderHour, setReminderHour] = useState(REMINDER_ANY_HOUR);
   const [reminderMinute, setReminderMinute] = useState(0);
   const [language, setLanguageLocal] = useState<"pt" | "en">("pt");
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,11 @@ export default function ProfilePage() {
     setSaving(true);
     setSaved(false);
 
+    const timezone =
+      typeof Intl !== "undefined"
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : "America/Sao_Paulo";
+
     const res = await fetch("/api/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -93,6 +99,7 @@ export default function ProfilePage() {
           notificationsEnabled: notifications,
           reminderHour,
           reminderMinute,
+          timezone,
         },
       }),
     });
@@ -352,6 +359,7 @@ export default function ProfilePage() {
                       onChange={(e) => setReminderHour(Number(e.target.value))}
                       className="flex-1 h-11 rounded-xl border border-slate-200 px-3 text-sm bg-white"
                     >
+                      <option value={REMINDER_ANY_HOUR}>{t("profile.reminderAny")}</option>
                       {Array.from({ length: 24 }, (_, i) => (
                         <option key={i} value={i}>
                           {String(i).padStart(2, "0")}:00
@@ -359,6 +367,9 @@ export default function ProfilePage() {
                       ))}
                     </select>
                   </div>
+                  {reminderHour === REMINDER_ANY_HOUR && (
+                    <p className="text-xs text-slate-500 mt-2">{t("profile.reminderAny.desc")}</p>
+                  )}
                 </div>
               )}
 

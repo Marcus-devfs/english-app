@@ -18,8 +18,9 @@ export const updateProfileSchema = z.object({
       practiceDaysPerWeek: z.number().min(1).max(7).optional(),
       practiceMinutesPerDay: z.number().min(5).max(120).optional(),
       notificationsEnabled: z.boolean().optional(),
-      reminderHour: z.number().min(0).max(23).optional(),
+      reminderHour: z.number().min(-1).max(23).optional(),
       reminderMinute: z.number().min(0).max(59).optional(),
+      timezone: z.string().min(1).max(64).optional(),
     })
     .optional(),
 });
@@ -32,6 +33,7 @@ export const pushSubscribeSchema = z.object({
       auth: z.string(),
     }),
   }),
+  timezone: z.string().min(1).max(64).optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

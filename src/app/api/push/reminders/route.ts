@@ -2,6 +2,12 @@ import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
 import { sendPushNotification, isPushConfigured } from "@/lib/push/web-push";
+import {
+  getCurrentHourInTimezone,
+  getTodayInTimezone,
+  resolveUserTimezone,
+} from "@/lib/push/timezone";
+import { isAnyReminderHour } from "@/lib/constants/push";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
@@ -17,22 +23,38 @@ export async function POST(request: NextRequest) {
       return apiError("Push not configured", 503);
     }
 
+    const force = request.nextUrl.searchParams.get("force") === "1";
+
     await connectDB();
 
-    const today = new Date().toISOString().split("T")[0];
-    const currentHour = new Date().getHours();
-
-    const users = await User.find({
+    const candidates = await User.find({
       "preferences.notificationsEnabled": true,
       pushSubscriptions: { $exists: true, $not: { $size: 0 } },
-      "preferences.reminderHour": currentHour,
     });
 
     let sent = 0;
     let failed = 0;
+    let matched = 0;
+    let skippedHour = 0;
+    let skippedStudied = 0;
 
-    for (const user of users) {
-      if (user.progress?.lastStudyDate === today) continue;
+    for (const user of candidates) {
+      const timezone = resolveUserTimezone(user.preferences?.timezone);
+      const currentHour = getCurrentHourInTimezone(timezone);
+      const today = getTodayInTimezone(timezone);
+      const reminderHour = user.preferences?.reminderHour ?? -1;
+
+      if (!force && !isAnyReminderHour(reminderHour) && currentHour !== reminderHour) {
+        skippedHour++;
+        continue;
+      }
+
+      matched++;
+
+      if (user.progress?.lastStudyDate === today) {
+        skippedStudied++;
+        continue;
+      }
 
       const lang = user.preferences?.language ?? "pt";
       const payload = {
@@ -57,7 +79,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return apiSuccess({ sent, failed, processed: users.length });
+    return apiSuccess({
+      sent,
+      failed,
+      candidates: candidates.length,
+      matched,
+      skippedHour,
+      skippedStudied,
+      force,
+    });
   } catch (error) {
     return handleApiError(error);
   }

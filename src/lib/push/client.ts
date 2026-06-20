@@ -33,6 +33,10 @@ export async function subscribeToPush(): Promise<boolean> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       subscription: subscription.toJSON(),
+      timezone:
+        typeof Intl !== "undefined"
+          ? Intl.DateTimeFormat().resolvedOptions().timeZone
+          : "America/Sao_Paulo",
     }),
   });
 

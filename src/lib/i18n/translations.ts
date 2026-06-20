@@ -1,3 +1,5 @@
+import { REMINDER_ANY_HOUR } from "@/lib/constants/push";
+
 export type AppLanguage = "pt" | "en";
 
 export interface UserPreferences {
@@ -7,6 +9,7 @@ export interface UserPreferences {
   notificationsEnabled: boolean;
   reminderHour: number;
   reminderMinute: number;
+  timezone: string;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -14,8 +17,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   practiceDaysPerWeek: 5,
   practiceMinutesPerDay: 15,
   notificationsEnabled: false,
-  reminderHour: 9,
+  reminderHour: REMINDER_ANY_HOUR,
   reminderMinute: 0,
+  timezone: "America/Sao_Paulo",
 };
 
 export type TranslationKey =
@@ -39,6 +43,8 @@ export type TranslationKey =
   | "profile.notifications"
   | "profile.notifications.desc"
   | "profile.reminderTime"
+  | "profile.reminderAny"
+  | "profile.reminderAny.desc"
   | "profile.save"
   | "profile.saved"
   | "profile.logout"
@@ -70,6 +76,8 @@ export const translations: Record<AppLanguage, Record<TranslationKey, string>> =
     "profile.notifications": "Notificações push",
     "profile.notifications.desc": "Lembretes para manter sua streak e meta diária",
     "profile.reminderTime": "Horário do lembrete",
+    "profile.reminderAny": "Qualquer horário (padrão)",
+    "profile.reminderAny.desc": "Recebe um lembrete na primeira execução de cada hora, se ainda não praticou hoje.",
     "profile.save": "Salvar alterações",
     "profile.saved": "Perfil atualizado!",
     "profile.logout": "Sair da conta",
@@ -100,6 +108,8 @@ export const translations: Record<AppLanguage, Record<TranslationKey, string>> =
     "profile.notifications": "Push notifications",
     "profile.notifications.desc": "Reminders to keep your streak and daily goal",
     "profile.reminderTime": "Reminder time",
+    "profile.reminderAny": "Any time (default)",
+    "profile.reminderAny.desc": "Get a reminder on the first cron run each hour if you haven't practiced today.",
     "profile.save": "Save changes",
     "profile.saved": "Profile updated!",
     "profile.logout": "Sign out",

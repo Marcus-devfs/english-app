@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const parsed = pushSubscribeSchema.safeParse(body);
     if (!parsed.success) return handleZodError(parsed.error);
 
-    const { subscription } = parsed.data;
+    const { subscription, timezone } = parsed.data;
 
     await connectDB();
 
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
         },
       },
       "preferences.notificationsEnabled": true,
+      "preferences.timezone": timezone ?? "America/Sao_Paulo",
     });
 
     return apiSuccess({ subscribed: true });

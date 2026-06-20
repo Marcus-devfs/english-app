@@ -48,8 +48,9 @@ const PreferencesSchema = new Schema(
     practiceDaysPerWeek: { type: Number, default: 5, min: 1, max: 7 },
     practiceMinutesPerDay: { type: Number, default: 15, min: 5, max: 120 },
     notificationsEnabled: { type: Boolean, default: false },
-    reminderHour: { type: Number, default: 9, min: 0, max: 23 },
+    reminderHour: { type: Number, default: -1, min: -1, max: 23 },
     reminderMinute: { type: Number, default: 0, min: 0, max: 59 },
+    timezone: { type: String, default: "America/Sao_Paulo" },
   },
   { _id: false }
 );
