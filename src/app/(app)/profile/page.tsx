@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loading } from "@/components/ui/loading";
+import { RangeSlider } from "@/components/ui/range-slider";
 import { Badge } from "@/components/ui/badge";
+import { GoalPickerSheet } from "@/components/profile/goal-picker-sheet";
 import { useLocale } from "@/lib/i18n/locale-provider";
 import { GOAL_LABELS, type LearningGoal } from "@/types";
 import { unsubscribeFromPush } from "@/lib/push/client";
@@ -55,6 +58,7 @@ export default function ProfilePage() {
   const [pushLoading, setPushLoading] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
   const [showPermissionHelp, setShowPermissionHelp] = useState(false);
+  const [showGoalPicker, setShowGoalPicker] = useState(false);
   const { isDenied, refresh: refreshPermission } = useNotificationPermissionWatch();
 
   useEffect(() => {
@@ -202,9 +206,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <AppShell showHeader={false}>
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin h-8 w-8 border-4 border-norte-blue border-t-transparent rounded-full" />
-        </div>
+        <Loading />
       </AppShell>
     );
   }
@@ -263,26 +265,17 @@ export default function ProfilePage() {
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-norte-ink mb-2">
+              <label className="block text-sm font-medium text-norte-ink mb-1.5">
                 {t("profile.goal")}
               </label>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                {(Object.keys(GOAL_LABELS) as LearningGoal[]).map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => setGoal(g)}
-                    className={cn(
-                      "w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all",
-                      goal === g
-                        ? "bg-norte-blue-light text-norte-blue font-medium"
-                        : "text-slate-600 hover:bg-slate-50"
-                    )}
-                  >
-                    {GOAL_LABELS[g]}
-                  </button>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoalPicker(true)}
+                className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:bg-slate-50 active:bg-slate-100"
+              >
+                <span className="text-sm text-norte-ink">{GOAL_LABELS[goal]}</span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+              </button>
             </div>
           </div>
         </section>
@@ -327,17 +320,14 @@ export default function ProfilePage() {
                   {practiceDays} {t("profile.daysPerWeek")}
                 </span>
               </div>
-              <input
-                type="range"
+              <RangeSlider
                 min={1}
                 max={7}
                 value={practiceDays}
-                onChange={(e) => setPracticeDays(Number(e.target.value))}
-                className="w-full accent-norte-blue"
+                onChange={setPracticeDays}
+                minLabel="1"
+                maxLabel="7"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                <span>1</span><span>7</span>
-              </div>
             </div>
 
             {/* Minutos por dia */}
@@ -350,18 +340,15 @@ export default function ProfilePage() {
                   {practiceMinutes} {t("profile.minutesPerDay")}
                 </span>
               </div>
-              <input
-                type="range"
+              <RangeSlider
                 min={5}
                 max={60}
                 step={5}
                 value={practiceMinutes}
-                onChange={(e) => setPracticeMinutes(Number(e.target.value))}
-                className="w-full accent-norte-blue"
+                onChange={setPracticeMinutes}
+                minLabel="5 min"
+                maxLabel="60 min"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                <span>5 min</span><span>60 min</span>
-              </div>
             </div>
 
             {/* Notificações push */}
@@ -384,15 +371,16 @@ export default function ProfilePage() {
                   disabled={!pushSupported || pushLoading}
                   onClick={handleTogglePush}
                   className={cn(
-                    "relative h-7 w-12 rounded-full transition-colors shrink-0 mt-1",
+                    "relative flex h-7 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors mt-1",
                     notifications ? "bg-norte-blue" : "bg-slate-200",
                     !pushSupported && "opacity-50 cursor-not-allowed"
                   )}
+                  aria-pressed={notifications}
                 >
                   <span
                     className={cn(
-                      "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
-                      notifications ? "translate-x-5" : "translate-x-0.5"
+                      "block h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200",
+                      notifications ? "translate-x-4" : "translate-x-0"
                     )}
                   />
                 </button>
@@ -511,6 +499,14 @@ export default function ProfilePage() {
         onRetry={handleRetryPushFromHelp}
         retryLoading={pushLoading}
         language={language}
+      />
+
+      <GoalPickerSheet
+        open={showGoalPicker}
+        value={goal}
+        onChange={setGoal}
+        onClose={() => setShowGoalPicker(false)}
+        title={t("profile.goal")}
       />
     </AppShell>
   );

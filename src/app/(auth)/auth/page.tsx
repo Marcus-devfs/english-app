@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loading } from "@/components/ui/loading";
 import { WELCOME_KEY, type AuthTab } from "@/lib/constants/auth";
 import { cn } from "@/lib/utils/cn";
 
@@ -95,7 +96,7 @@ function AuthContent() {
   if (checking) {
     return (
       <div className="flex h-dvh items-center justify-center bg-norte-bg">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-norte-blue border-t-transparent" />
+        <Loading fullHeight={false} />
       </div>
     );
   }
@@ -230,7 +231,7 @@ export default function AuthPage() {
     <Suspense
       fallback={
         <div className="flex h-dvh items-center justify-center bg-norte-bg">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-norte-blue border-t-transparent" />
+          <Loading fullHeight={false} />
         </div>
       }
     >

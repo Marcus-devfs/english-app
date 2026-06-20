@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
+import { Loading } from "@/components/ui/loading";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,9 +57,7 @@ export default function QuizPage() {
   if (loading) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin h-8 w-8 border-4 border-norte-blue border-t-transparent rounded-full" />
-        </div>
+        <Loading />
       </AppShell>
     );
   }

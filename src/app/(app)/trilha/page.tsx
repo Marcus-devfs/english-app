@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
+import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { getTrailForUser, type TrailLesson } from "@/lib/data/trail";
 import { GOAL_LABELS, type LearningGoal } from "@/types";
@@ -42,9 +43,7 @@ export default function TrilhaPage() {
   if (loading) {
     return (
       <AppShell showHeader={false}>
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin h-8 w-8 border-4 border-norte-blue border-t-transparent rounded-full" />
-        </div>
+        <Loading />
       </AppShell>
     );
   }

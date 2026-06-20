@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Loading } from "@/components/ui/loading";
 import { WELCOME_KEY } from "@/lib/constants/auth";
 
 export default function HomePage() {
@@ -34,10 +35,7 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto flex h-dvh max-w-lg items-center justify-center bg-norte-bg">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-norte-blue border-t-transparent" />
-        <p className="text-sm text-slate-500">Norte</p>
-      </div>
+      <Loading fullHeight={false} />
     </div>
   );
 }

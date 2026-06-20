@@ -57,3 +57,48 @@ html {
 .recording-pulse {
   animation: pulse-ring 1.5s ease-in-out infinite;
 }
+
+.norte-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 1.5rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.norte-range:focus {
+  outline: none;
+}
+
+.norte-range::-webkit-slider-runnable-track {
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: #e2e8f0;
+}
+
+.norte-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: -0.4375rem;
+  border-radius: 9999px;
+  background: #2F48E0;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+}
+
+.norte-range::-moz-range-track {
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: #e2e8f0;
+}
+
+.norte-range::-moz-range-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: #2F48E0;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+}
