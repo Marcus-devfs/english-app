@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 
-const PUBLIC_ROUTES = ["/", "/login", "/register"];
+const PUBLIC_ROUTES = ["/", "/login", "/register", "/~offline"];
 const ONBOARDING_ROUTES = ["/onboarding"];
 const AUTH_API = ["/api/auth/login", "/api/auth/register"];
 
@@ -12,6 +12,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/auth/register") ||
+    pathname.startsWith("/serwist/") ||
+    pathname.startsWith("/icons/") ||
+    pathname === "/manifest.webmanifest" ||
     pathname.includes(".")
   ) {
     return NextResponse.next();
