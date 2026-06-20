@@ -386,6 +386,12 @@ export default function ProfilePage() {
 
         {/* Atalhos */}
         <div className="space-y-2">
+          <Link href="/install">
+            <div className="flex items-center justify-between rounded-2xl bg-white border border-slate-100 p-4 active:scale-[0.99] transition-transform">
+              <span className="text-sm font-medium text-norte-ink">Instalar app na tela inicial</span>
+              <ChevronRight className="h-4 w-4 text-slate-400" />
+            </div>
+          </Link>
           <Link href="/trilha">
             <div className="flex items-center justify-between rounded-2xl bg-white border border-slate-100 p-4 active:scale-[0.99] transition-transform">
               <span className="text-sm font-medium text-norte-ink">Ver minha trilha</span>

@@ -2,6 +2,8 @@
 
 Documentação do sistema de notificações push (Web Push + PWA).
 
+> Instalação do app e prompt de ativação: [PWA_INSTALL.md](./PWA_INSTALL.md)
+
 ## Visão geral
 
 O Norte envia **lembretes personalizados** para usuários que:

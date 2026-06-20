@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 
-const PUBLIC_ROUTES = ["/", "/welcome", "/auth", "/login", "/register", "/~offline"];
+const PUBLIC_ROUTES = ["/", "/welcome", "/install", "/auth", "/login", "/register", "/~offline"];
 const AUTH_API = ["/api/auth/login", "/api/auth/register"];
 const CRON_API = ["/api/push/reminders"];
 

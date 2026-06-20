@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
-import { Brain, MessageCircle, Map, ChevronRight } from "lucide-react";
+import { Brain, MessageCircle, Map, ChevronRight, Smartphone } from "lucide-react";
 import { WELCOME_KEY } from "@/lib/constants/auth";
 
 const slides = [
@@ -76,6 +77,13 @@ export default function WelcomePage() {
               Entrar
             </button>
           </p>
+          <Link
+            href="/install"
+            className="flex items-center justify-center gap-2 text-sm text-slate-400 hover:text-white transition-colors pt-1"
+          >
+            <Smartphone className="h-4 w-4" />
+            Como instalar na tela inicial
+          </Link>
         </div>
       </div>
     );

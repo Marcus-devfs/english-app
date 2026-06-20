@@ -13,6 +13,7 @@ import {
 } from "@/components/engagement/engagement-cards";
 import { GOAL_LABELS, type UserProgress } from "@/types";
 import { MessageCircle, Zap, ChevronRight } from "lucide-react";
+import { PushPrompt } from "@/components/pwa/push-prompt";
 
 interface DashboardData {
   user: {
@@ -81,6 +82,8 @@ export default function DashboardPage() {
             {firstName[0]?.toUpperCase()}
           </div>
         </div>
+
+        <PushPrompt />
 
         <StreakAlertCard streak={progress?.streakDays ?? 0} />
 
