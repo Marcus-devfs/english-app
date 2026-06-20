@@ -9,7 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useLocale } from "@/lib/i18n/locale-provider";
 import { GOAL_LABELS, type LearningGoal } from "@/types";
-import { subscribeToPush, unsubscribeFromPush } from "@/lib/push/client";
+import { unsubscribeFromPush } from "@/lib/push/client";
+import { enablePushNotifications } from "@/lib/pwa/enable-push";
+import {
+  NotificationPermissionHelp,
+  useNotificationPermissionWatch,
+} from "@/components/pwa/notification-permission-help";
 import { Bell, BellOff, LogOut, ChevronRight } from "lucide-react";
 import { REMINDER_ANY_HOUR } from "@/lib/constants/push";
 import { cn } from "@/lib/utils/cn";
@@ -49,6 +54,8 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
+  const [showPermissionHelp, setShowPermissionHelp] = useState(false);
+  const { isDenied, refresh: refreshPermission } = useNotificationPermissionWatch();
 
   useEffect(() => {
     setPushSupported(
@@ -129,15 +136,41 @@ export default function ProfilePage() {
         await unsubscribeFromPush();
         setNotifications(false);
       } else {
-        const ok = await subscribeToPush();
-        setNotifications(ok);
-        if (!ok) {
-          alert(
-            language === "pt"
-              ? "Não foi possível ativar notificações. Verifique as permissões do navegador."
-              : "Could not enable notifications. Check browser permissions."
-          );
+        if (isDenied) {
+          setShowPermissionHelp(true);
+          return;
         }
+
+        const result = await enablePushNotifications();
+        setNotifications(result.success);
+        refreshPermission();
+
+        if (result.success) return;
+
+        if (result.reason === "denied" || result.reason === "dismissed") {
+          setShowPermissionHelp(true);
+          return;
+        }
+
+        alert(
+          language === "pt"
+            ? "Não foi possível ativar. Instale o app na tela inicial ou tente mais tarde."
+            : "Could not enable notifications. Install the app or try again later."
+        );
+      }
+    } finally {
+      setPushLoading(false);
+    }
+  }
+
+  async function handleRetryPushFromHelp() {
+    setPushLoading(true);
+    try {
+      const result = await enablePushNotifications();
+      refreshPermission();
+      if (result.success) {
+        setNotifications(true);
+        setShowPermissionHelp(false);
       }
     } finally {
       setPushLoading(false);
@@ -380,6 +413,23 @@ export default function ProfilePage() {
                     : "Push notifications only available in installed PWA or Chrome."}
                 </p>
               )}
+
+              {pushSupported && isDenied && !notifications && (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                  <p className="text-xs text-amber-900 leading-relaxed">
+                    {language === "pt"
+                      ? "Você bloqueou notificações. O navegador não pergunta de novo — libere manualmente nas configurações."
+                      : "Notifications are blocked. Enable them manually in your device settings."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowPermissionHelp(true)}
+                    className="text-xs font-semibold text-amber-800 underline underline-offset-2"
+                  >
+                    {language === "pt" ? "Ver passo a passo" : "See how to enable"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -418,6 +468,14 @@ export default function ProfilePage() {
           {t("profile.logout")}
         </button>
       </div>
+
+      <NotificationPermissionHelp
+        open={showPermissionHelp}
+        onClose={() => setShowPermissionHelp(false)}
+        onRetry={handleRetryPushFromHelp}
+        retryLoading={pushLoading}
+        language={language}
+      />
     </AppShell>
   );
 }

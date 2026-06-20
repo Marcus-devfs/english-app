@@ -1,3 +1,9 @@
+import {
+  getNotificationPermissionState,
+  type PushSubscribeFailureReason,
+  type PushSubscribeResult,
+} from "@/lib/pwa/notification-permission";
+
 export function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -9,18 +15,38 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuf
   return outputArray;
 }
 
-export async function subscribeToPush(): Promise<boolean> {
+export type { PushSubscribeResult, PushSubscribeFailureReason };
+
+export async function subscribeToPush(): Promise<PushSubscribeResult> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    return false;
+    return { success: false, reason: "unsupported" };
+  }
+
+  if (!("Notification" in window)) {
+    return { success: false, reason: "unsupported" };
+  }
+
+  if (Notification.permission === "denied") {
+    return { success: false, reason: "denied" };
   }
 
   const keyRes = await fetch("/api/push/subscribe");
   const keyData = await keyRes.json();
   const publicKey = keyData.data?.publicKey;
-  if (!publicKey) return false;
+  if (!publicKey) return { success: false, reason: "no_vapid" };
 
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") return false;
+  let permission: NotificationPermission = Notification.permission;
+  if (permission === "default") {
+    permission = await Notification.requestPermission();
+  }
+
+  if (permission === "denied") {
+    return { success: false, reason: "denied" };
+  }
+
+  if (permission !== "granted") {
+    return { success: false, reason: "dismissed" };
+  }
 
   const registration = await navigator.serviceWorker.ready;
   const subscription = await registration.pushManager.subscribe({
@@ -40,7 +66,11 @@ export async function subscribeToPush(): Promise<boolean> {
     }),
   });
 
-  return res.ok;
+  if (!res.ok) {
+    return { success: false, reason: "api_error" };
+  }
+
+  return { success: true };
 }
 
 export async function unsubscribeFromPush(): Promise<boolean> {

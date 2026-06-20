@@ -9,14 +9,18 @@ import { cn } from "@/lib/utils/cn";
 interface NotificationPromptModalProps {
   open: boolean;
   loading?: boolean;
+  isDenied?: boolean;
   onEnable: () => void;
+  onShowHelp?: () => void;
   onDismiss: () => void;
 }
 
 export function NotificationPromptModal({
   open,
   loading,
+  isDenied,
   onEnable,
+  onShowHelp,
   onDismiss,
 }: NotificationPromptModalProps) {
   useEffect(() => {
@@ -74,16 +78,33 @@ export function NotificationPromptModal({
           </div>
 
           <h2 id="push-modal-title" className="text-xl font-bold text-norte-ink mb-2">
-            Ative os lembretes
+            {isDenied ? "Notificações bloqueadas" : "Ative os lembretes"}
           </h2>
           <p className="text-sm text-slate-600 leading-relaxed mb-6 max-w-[280px]">
-            Receba lembretes personalizados para manter sua streak e bater sua meta diária
-            de prática — sem precisar abrir o app.
+            {isDenied
+              ? "Você negou a permissão antes. Toque abaixo para ver como liberar nas configurações do celular."
+              : "Receba lembretes personalizados para manter sua streak e bater sua meta diária de prática."}
           </p>
 
-          <Button className="w-full mb-3" loading={loading} onClick={onEnable}>
-            Ativar notificações
-          </Button>
+          {isDenied ? (
+            <>
+              <Button className="w-full mb-3" onClick={onShowHelp}>
+                Como liberar notificações
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full mb-3"
+                loading={loading}
+                onClick={onEnable}
+              >
+                Já liberei — tentar de novo
+              </Button>
+            </>
+          ) : (
+            <Button className="w-full mb-3" loading={loading} onClick={onEnable}>
+              Ativar notificações
+            </Button>
+          )}
           <button
             type="button"
             onClick={onDismiss}
