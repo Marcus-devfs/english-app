@@ -4,9 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Send, Mic, MicOff, Bot, User } from "lucide-react";
+import { Send, Bot, User, Mic, Square } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { getSpeechRecognition, type ISpeechRecognition } from "@/lib/speech";
+import { useVoiceRecorder } from "@/lib/hooks/use-voice-recorder";
 
 interface Message {
   _id?: string;
@@ -19,9 +19,8 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<ISpeechRecognition | null>(null);
+  const { isRecording, displayText, start, stop } = useVoiceRecorder();
 
   useEffect(() => {
     fetch("/api/chat")
@@ -46,8 +45,10 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
-    recognitionRef.current = getSpeechRecognition();
-  }, []);
+    if (isRecording && displayText) {
+      setInput(displayText);
+    }
+  }, [isRecording, displayText]);
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
@@ -72,34 +73,25 @@ export default function ChatPage() {
     }
   }
 
-  function startVoiceInput() {
-    const rec = recognitionRef.current;
-    if (!rec) {
-      sendMessage("Hello, I want to practice my English today.");
-      return;
+  function handleMicToggle() {
+    if (isRecording) {
+      const text = stop();
+      if (text) setInput(text);
+    } else {
+      setInput("");
+      start();
     }
-
-    rec.lang = "en-US";
-    rec.onresult = (e) => {
-      sendMessage(e.results[0][0].transcript);
-      setIsRecording(false);
-    };
-    rec.onerror = () => setIsRecording(false);
-    rec.onend = () => setIsRecording(false);
-
-    setIsRecording(true);
-    rec.start();
   }
 
   return (
-    <AppShell>
+    <AppShell showHeader={false}>
       <div className="flex h-full min-h-0 flex-1 flex-col">
         <div className="flex items-center gap-3 border-b border-slate-100 bg-white px-4 py-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-600">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-norte-blue">
             <Bot className="h-5 w-5 text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-semibold text-slate-900">Alex — Professor IA</h1>
+            <h1 className="truncate font-semibold text-norte-ink">Alex — Professor IA</h1>
             <p className="text-xs text-slate-500">Correções em tempo real</p>
           </div>
           <Badge variant="success">Online</Badge>
@@ -110,29 +102,26 @@ export default function ChatPage() {
             {messages.map((msg, i) => (
               <div
                 key={i}
-                className={cn(
-                  "flex gap-3",
-                  msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                )}
+                className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "flex-row")}
               >
                 <div
                   className={cn(
                     "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
-                    msg.role === "user" ? "bg-indigo-100" : "bg-emerald-100"
+                    msg.role === "user" ? "bg-norte-blue-light" : "bg-emerald-50"
                   )}
                 >
                   {msg.role === "user" ? (
-                    <User className="h-4 w-4 text-indigo-600" />
+                    <User className="h-4 w-4 text-norte-blue" />
                   ) : (
-                    <Bot className="h-4 w-4 text-emerald-600" />
+                    <Bot className="h-4 w-4 text-norte-green" />
                   )}
                 </div>
                 <div
                   className={cn(
                     "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
                     msg.role === "user"
-                      ? "bg-indigo-600 text-white rounded-tr-sm"
-                      : "bg-white border border-slate-100 text-slate-800 rounded-tl-sm shadow-sm"
+                      ? "bg-norte-blue text-white rounded-tr-sm"
+                      : "bg-white border border-slate-100 text-norte-ink rounded-tl-sm shadow-sm"
                   )}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -141,7 +130,7 @@ export default function ChatPage() {
                       {msg.corrections.map((c, j) => (
                         <div key={j} className="text-xs bg-amber-50 rounded-lg p-2">
                           <p className="text-red-600 line-through">{c.original}</p>
-                          <p className="text-emerald-700 font-medium">{c.corrected}</p>
+                          <p className="text-norte-green font-medium">{c.corrected}</p>
                           <p className="text-slate-500 mt-0.5">{c.explanation}</p>
                         </div>
                       ))}
@@ -153,8 +142,8 @@ export default function ChatPage() {
 
             {loading && (
               <div className="flex gap-3">
-                <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-emerald-600" />
+                <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-norte-green" />
                 </div>
                 <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
                   <div className="flex gap-1">
@@ -174,31 +163,41 @@ export default function ChatPage() {
         </div>
 
         <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3">
-          <div className="flex gap-2">
+          {isRecording && (
+            <p className="text-xs text-red-500 font-medium text-center mb-2 animate-pulse">
+              ● Gravando… toque no quadrado vermelho quando terminar
+            </p>
+          )}
+          <div className="flex gap-2 items-end">
             <button
-              onClick={startVoiceInput}
-              disabled={loading || isRecording}
+              type="button"
+              onClick={handleMicToggle}
+              disabled={loading}
               className={cn(
                 "shrink-0 h-11 w-11 rounded-xl flex items-center justify-center transition-all",
                 isRecording
-                  ? "bg-red-500 text-white animate-pulse"
-                  : "bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"
+                  ? "bg-red-500 text-white recording-pulse"
+                  : "bg-norte-blue-light text-norte-blue hover:bg-norte-blue/10"
               )}
             >
-              {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              {isRecording ? (
+                <Square className="h-4 w-4 fill-current" />
+              ) : (
+                <Mic className="h-5 w-5" />
+              )}
             </button>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-              placeholder="Digite em inglês..."
-              disabled={loading}
-              className="flex-1 h-11 px-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              onKeyDown={(e) => e.key === "Enter" && !isRecording && sendMessage(input)}
+              placeholder={isRecording ? "Falando…" : "Digite em inglês..."}
+              disabled={loading || isRecording}
+              className="flex-1 h-11 px-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-norte-blue text-sm"
             />
             <Button
               onClick={() => sendMessage(input)}
-              disabled={!input.trim() || loading}
+              disabled={!input.trim() || loading || isRecording}
               size="icon"
               className="shrink-0"
             >

@@ -14,10 +14,10 @@ interface NotificationCardProps {
 
 const typeStyles = {
   achievement: "border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50",
-  reminder: "border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-50",
+  reminder: "border-norte-blue/20 bg-gradient-to-r from-norte-blue-light to-white",
   streak: "border-orange-200 bg-gradient-to-r from-orange-50 to-red-50",
   tip: "border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50",
-  level_up: "border-violet-200 bg-gradient-to-r from-violet-50 to-purple-50",
+  level_up: "border-norte-blue/20 bg-gradient-to-r from-norte-blue-light to-white",
 };
 
 export function NotificationCard({ id, type, title, message, onDismiss }: NotificationCardProps) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 
-const PUBLIC_ROUTES = ["/", "/login", "/register", "/~offline"];
+const PUBLIC_ROUTES = ["/", "/welcome", "/login", "/register", "/~offline"];
 const ONBOARDING_ROUTES = ["/onboarding"];
 const AUTH_API = ["/api/auth/login", "/api/auth/register"];
 

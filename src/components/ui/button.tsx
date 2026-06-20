@@ -1,19 +1,20 @@
-import { cn } from "@/lib/utils/cn";
 import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef } from "react";
+import { cn } from "@/lib/utils/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+  "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-norte-blue focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
   {
     variants: {
       variant: {
         primary:
-          "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/25 active:scale-[0.98]",
+          "bg-norte-blue text-white hover:bg-norte-blue/90 shadow-lg shadow-norte-blue/25 active:scale-[0.98]",
         secondary:
-          "bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 active:scale-[0.98]",
-        ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+          "bg-white text-norte-blue border border-norte-blue/20 hover:bg-norte-blue-light active:scale-[0.98]",
+        ghost: "text-slate-600 hover:bg-slate-100 hover:text-norte-ink",
         danger: "bg-red-600 text-white hover:bg-red-700",
-        success: "bg-emerald-600 text-white hover:bg-emerald-700",
+        success: "bg-norte-green text-white hover:bg-norte-green/90",
+        accent: "bg-norte-yellow text-norte-ink hover:bg-norte-yellow/90 font-semibold",
       },
       size: {
         sm: "h-9 px-4 text-sm",

@@ -4,11 +4,11 @@ interface ProgressBarProps {
   value: number;
   max?: number;
   label?: string;
-  color?: "indigo" | "emerald" | "amber" | "violet";
+  color?: "blue" | "green" | "yellow" | "ink";
   className?: string;
 }
 
-export function ProgressBar({ value, max = 100, label, color = "indigo", className }: ProgressBarProps) {
+export function ProgressBar({ value, max = 100, label, color = "blue", className }: ProgressBarProps) {
   const pct = Math.min(100, Math.round((value / max) * 100));
 
   return (
@@ -16,17 +16,17 @@ export function ProgressBar({ value, max = 100, label, color = "indigo", classNa
       {label && (
         <div className="flex justify-between text-sm">
           <span className="text-slate-600">{label}</span>
-          <span className="font-medium text-slate-900">{pct}%</span>
+          <span className="font-medium text-norte-ink">{pct}%</span>
         </div>
       )}
-      <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
         <div
           className={cn(
             "h-full rounded-full transition-all duration-500",
-            color === "indigo" && "bg-indigo-500",
-            color === "emerald" && "bg-emerald-500",
-            color === "amber" && "bg-amber-500",
-            color === "violet" && "bg-violet-500"
+            color === "blue" && "bg-norte-blue",
+            color === "green" && "bg-norte-green",
+            color === "yellow" && "bg-norte-yellow",
+            color === "ink" && "bg-norte-ink"
           )}
           style={{ width: `${pct}%` }}
         />

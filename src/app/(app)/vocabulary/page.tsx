@@ -71,7 +71,7 @@ export default function VocabularyPage() {
               onClick={() => setActiveTab(tab)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab
-                  ? "bg-white text-indigo-700 shadow-sm"
+                  ? "bg-white text-norte-blue shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -100,7 +100,7 @@ export default function VocabularyPage() {
                         <span className="font-semibold text-slate-900">{word}</span>
                         <button
                           onClick={() => speak(word)}
-                          className="text-indigo-400 hover:text-indigo-600"
+                          className="text-norte-blue hover:text-norte-blue/80"
                         >
                           <Volume2 className="h-4 w-4" />
                         </button>
@@ -126,7 +126,7 @@ export default function VocabularyPage() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-slate-600">Exemplos:</p>
                   {lesson.examples.map((ex) => (
-                    <p key={ex} className="text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg">
+                    <p key={ex} className="text-sm text-norte-blue bg-norte-blue-light px-3 py-2 rounded-lg">
                       {ex}
                     </p>
                   ))}
@@ -140,7 +140,7 @@ export default function VocabularyPage() {
                         <p className="text-sm text-slate-800">{ex.prompt}</p>
                         <button
                           onClick={() => toggleAnswer(id)}
-                          className="text-xs text-indigo-600 mt-2 hover:underline"
+                          className="text-xs text-norte-blue mt-2 hover:underline"
                         >
                           {revealedAnswers.has(id) ? ex.answer : "Ver resposta"}
                         </button>

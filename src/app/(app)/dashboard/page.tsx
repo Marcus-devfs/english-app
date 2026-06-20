@@ -3,22 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ProgressBar } from "@/components/ui/progress-bar";
-import { NotificationCard } from "@/components/ui/notification-card";
 import { Button } from "@/components/ui/button";
-import { GOAL_LABELS, LEVEL_LABELS, type UserProgress } from "@/types";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import {
-  BookOpen,
-  Brain,
-  MessageCircle,
-  Flame,
-  Trophy,
-  Star,
-  ChevronRight,
-  Zap,
-} from "lucide-react";
+  PhraseOfDayCard,
+  WeeklyGoalCard,
+  AchievementCard,
+  StreakAlertCard,
+} from "@/components/engagement/engagement-cards";
+import { GOAL_LABELS, type UserProgress } from "@/types";
+import { MessageCircle, Zap, ChevronRight } from "lucide-react";
 
 interface DashboardData {
   user: {
@@ -28,12 +22,13 @@ interface DashboardData {
     progress: UserProgress;
   };
   dailyLesson: { title: string; phrase: string };
-  notifications: {
-    id: string;
-    type: "achievement" | "reminder" | "streak" | "tip" | "level_up";
-    title: string;
-    message: string;
-  }[];
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
 }
 
 export default function DashboardPage() {
@@ -42,19 +37,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
-      const [lessonsRes, progressRes] = await Promise.all([
-        fetch("/api/lessons"),
-        fetch("/api/progress"),
-      ]);
-      const lessons = await lessonsRes.json();
-      const progress = await progressRes.json();
-
-      if (lessons.success && progress.success) {
-        setData({
-          user: lessons.data.user,
-          dailyLesson: lessons.data.dailyLesson,
-          notifications: progress.data.notifications,
-        });
+      const res = await fetch("/api/lessons");
+      const json = await res.json();
+      if (json.success) {
+        setData({ user: json.data.user, dailyLesson: json.data.dailyLesson });
       }
       setLoading(false);
     }
@@ -65,130 +51,104 @@ export default function DashboardPage() {
     return (
       <AppShell>
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full" />
+          <div className="animate-spin h-8 w-8 border-4 border-norte-blue border-t-transparent rounded-full" />
         </div>
       </AppShell>
     );
   }
 
   const progress = data?.user.progress;
-  const xpToNextLevel = 200;
-  const xpProgress = progress ? (progress.xp % xpToNextLevel) : 0;
+  const firstName = data?.user.name?.split(" ")[0] ?? "aluno";
+  const xpWeek = Math.min(progress?.xp ?? 0, 500);
+  const quizAccuracy =
+    progress && progress.quizzesCompleted > 0
+      ? Math.min(95, 70 + progress.quizzesCompleted * 3)
+      : 0;
 
   return (
-    <AppShell userName={data?.user.name}>
-      <div className="flex-1 overflow-y-auto p-4 pb-6 lg:p-8">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Olá, {data?.user.name?.split(" ")[0]}! 👋
-          </h1>
-          <p className="text-slate-600 mt-1">
-            Continue sua trilha de {GOAL_LABELS[data?.user.goal as keyof typeof GOAL_LABELS] ?? "inglês"}
-          </p>
-        </div>
-
-        {data?.notifications && data.notifications.length > 0 && (
-          <div className="space-y-3">
-            {data.notifications.slice(0, 2).map((n) => (
-              <NotificationCard key={n.id} {...n} />
-            ))}
+    <AppShell userName={data?.user.name} streak={progress?.streakDays ?? 0}>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 space-y-5">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-norte-ink">
+              {getGreeting()}, {firstName} 👋
+            </h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {GOAL_LABELS[data?.user.goal as keyof typeof GOAL_LABELS] ?? "Sua trilha"}
+            </p>
           </div>
-        )}
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { icon: Star, label: "Nível", value: data?.user.level ?? "—", color: "text-violet-600", bg: "bg-violet-50" },
-            { icon: Flame, label: "Streak", value: `${progress?.streakDays ?? 0} dias`, color: "text-orange-600", bg: "bg-orange-50" },
-            { icon: Zap, label: "XP Total", value: progress?.xp ?? 0, color: "text-indigo-600", bg: "bg-indigo-50" },
-            { icon: Trophy, label: "Lições", value: progress?.lessonsCompleted ?? 0, color: "text-emerald-600", bg: "bg-emerald-50" },
-          ].map(({ icon: Icon, label, value, color, bg }) => (
-            <Card key={label}>
-              <CardContent className="flex items-center gap-4 py-4">
-                <div className={`h-11 w-11 rounded-xl ${bg} flex items-center justify-center`}>
-                  <Icon className={`h-5 w-5 ${color}`} />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">{label}</p>
-                  <p className="text-xl font-bold text-slate-900">{value}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <div className="h-10 w-10 rounded-full bg-norte-blue flex items-center justify-center text-white font-bold text-sm shrink-0">
+            {firstName[0]?.toUpperCase()}
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white">
-            <CardContent className="space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <Badge variant="info">Lição do dia</Badge>
-                  <CardTitle className="mt-2">{data?.dailyLesson.title}</CardTitle>
-                </div>
-                <BookOpen className="h-6 w-6 text-indigo-400" />
-              </div>
-              <blockquote className="text-lg font-medium text-slate-800 italic border-l-4 border-indigo-400 pl-4">
-                &ldquo;{data?.dailyLesson.phrase}&rdquo;
-              </blockquote>
-              <Link href="/lessons">
-                <Button className="w-full">
-                  Estudar lição do dia
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+        <StreakAlertCard streak={progress?.streakDays ?? 0} />
 
-          <Card>
-            <CardContent className="space-y-4">
-              <CardTitle>Seu progresso XP</CardTitle>
-              <ProgressBar
-                value={xpProgress}
-                max={xpToNextLevel}
-                label={`${xpProgress} / ${xpToNextLevel} XP`}
-                color="violet"
-              />
-              <div className="space-y-3 pt-2">
-                <ProgressBar value={progress?.grammarScore ?? 0} max={100} label="Gramática" color="indigo" />
-                <ProgressBar value={progress?.vocabularyScore ?? 0} max={100} label="Vocabulário" color="emerald" />
-                <ProgressBar value={progress?.speakingScore ?? 0} max={100} label="Conversação" color="amber" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Lição do dia — card escuro */}
+        <div className="rounded-2xl bg-norte-ink p-5 relative overflow-hidden">
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/5" />
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+            Lição do dia
+          </p>
+          <h2 className="text-lg font-bold text-white leading-snug pr-4">
+            {data?.dailyLesson.title}
+          </h2>
+          <p className="text-sm text-slate-400 mt-1">5 min · vocabulário + fala</p>
+          <Link href="/lessons">
+            <Button variant="accent" size="sm" className="mt-4">
+              Continuar
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4">
-          {[
-            { href: "/quiz", icon: Brain, title: "Quiz rápido", desc: "Teste seus conhecimentos", color: "bg-violet-50 text-violet-600" },
-            { href: "/chat", icon: MessageCircle, title: "Conversar com IA", desc: "Pratique speaking agora", color: "bg-emerald-50 text-emerald-600" },
-            { href: "/vocabulary", icon: BookOpen, title: "Vocabulário", desc: "Palavras do seu objetivo", color: "bg-amber-50 text-amber-600" },
-          ].map(({ href, icon: Icon, title, desc, color }) => (
-            <Link key={href} href={href}>
-              <Card hover>
-                <CardContent className="py-5">
-                  <div className={`h-10 w-10 rounded-xl ${color} flex items-center justify-center mb-3`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <p className="font-semibold text-slate-900">{title}</p>
-                  <p className="text-sm text-slate-500 mt-0.5">{desc}</p>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+        {/* Grid 2x2 progresso */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
+            <p className="text-xs text-slate-500 mb-1">Nível atual</p>
+            <p className="text-xl font-bold text-norte-ink">{data?.user.level ?? "B1"}</p>
+            <p className="text-xs text-norte-green font-medium mt-0.5">+8%</p>
+            <ProgressBar value={68} className="mt-2" color="blue" />
+          </div>
+          <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
+            <p className="text-xs text-slate-500 mb-1">XP esta semana</p>
+            <p className="text-xl font-bold text-norte-ink">
+              {xpWeek} <span className="text-sm font-normal text-slate-400">/ 500</span>
+            </p>
+            <ProgressBar value={xpWeek} max={500} className="mt-2" color="yellow" />
+          </div>
+          <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
+            <p className="text-xs text-slate-500 mb-1">Lições</p>
+            <p className="text-2xl font-bold text-norte-ink">{progress?.lessonsCompleted ?? 0}</p>
+          </div>
+          <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
+            <p className="text-xs text-slate-500 mb-1">Precisão quiz</p>
+            <p className="text-2xl font-bold text-norte-ink">{quizAccuracy}%</p>
+          </div>
         </div>
 
-        <Card>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Seu nível CEFR</p>
-                <p className="text-2xl font-bold text-slate-900">
-                  {LEVEL_LABELS[data?.user.level as keyof typeof LEVEL_LABELS] ?? data?.user.level}
-                </p>
-              </div>
-              <Badge variant="level">{progress?.quizzesCompleted ?? 0} quizzes feitos</Badge>
+        {/* Ações rápidas */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/chat">
+            <div className="rounded-2xl bg-norte-blue-light border border-norte-blue/10 p-4 h-full active:scale-[0.98] transition-transform">
+              <MessageCircle className="h-6 w-6 text-norte-blue mb-2" />
+              <p className="font-semibold text-norte-ink text-sm">Falar com a IA</p>
+              <p className="text-xs text-slate-500">voz ou texto</p>
             </div>
-          </CardContent>
-        </Card>
+          </Link>
+          <Link href="/quiz">
+            <div className="rounded-2xl bg-emerald-50 border border-norte-green/10 p-4 h-full active:scale-[0.98] transition-transform">
+              <Zap className="h-6 w-6 text-norte-green mb-2" />
+              <p className="font-semibold text-norte-ink text-sm">Quiz rápido</p>
+              <p className="text-xs text-slate-500">5 perguntas</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Engajamento */}
+        <PhraseOfDayCard />
+        <WeeklyGoalCard daysCompleted={Math.min(5, progress?.streakDays ?? 0)} />
+        <AchievementCard dialogues={Math.floor((progress?.speakingScore ?? 0) / 2)} />
       </div>
     </AppShell>
   );

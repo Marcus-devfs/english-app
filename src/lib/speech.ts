@@ -10,6 +10,7 @@ export interface ISpeechRecognition extends EventTarget {
 }
 
 export interface ISpeechRecognitionEvent extends Event {
+  resultIndex: number;
   results: SpeechRecognitionResultList;
 }
 

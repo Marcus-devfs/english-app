@@ -57,7 +57,7 @@ export default function QuizPage() {
     return (
       <AppShell>
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full" />
+          <div className="animate-spin h-8 w-8 border-4 border-norte-blue border-t-transparent rounded-full" />
         </div>
       </AppShell>
     );
@@ -68,11 +68,11 @@ export default function QuizPage() {
       <AppShell>
         <div className="flex-1 overflow-y-auto p-4 pb-6 space-y-6">
           <div className="text-center">
-            <div className="h-20 w-20 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-4">
-              <Brain className="h-10 w-10 text-indigo-600" />
+            <div className="h-20 w-20 rounded-full bg-norte-blue-light flex items-center justify-center mx-auto mb-4">
+              <Brain className="h-10 w-10 text-norte-blue" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Quiz concluído!</h1>
-            <p className="text-4xl font-bold text-indigo-600 mt-2">{result.score}%</p>
+            <p className="text-4xl font-bold text-norte-blue mt-2">{result.score}%</p>
             <p className="text-slate-600 mt-1">
               {result.correct}/{result.total} corretas · +{result.xpEarned} XP
             </p>
@@ -146,8 +146,8 @@ export default function QuizPage() {
               }
               className={`w-full p-4 rounded-xl border text-left text-sm transition-all ${
                 answers[question.id] === option
-                  ? "border-indigo-400 bg-indigo-50 text-indigo-800"
-                  : "border-slate-200 bg-white hover:border-indigo-200"
+                  ? "border-norte-blue/40 bg-norte-blue-light text-norte-ink"
+                  : "border-slate-200 bg-white hover:border-norte-blue/20"
               }`}
             >
               {option}

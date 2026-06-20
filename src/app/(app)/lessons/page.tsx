@@ -44,7 +44,7 @@ export default function LessonsPage() {
     return (
       <AppShell>
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full" />
+          <div className="animate-spin h-8 w-8 border-4 border-norte-blue600 border-t-transparent rounded-full" />
         </div>
       </AppShell>
     );
@@ -60,7 +60,7 @@ export default function LessonsPage() {
           <h1 className="text-2xl font-bold text-slate-900 mt-2">{lesson.title}</h1>
         </div>
 
-        <Card className="border-indigo-100">
+        <Card className="border-norte-blue-light">
           <CardContent className="space-y-4">
             <div className="flex items-start justify-between gap-4">
               <blockquote className="text-xl font-medium text-slate-800 italic flex-1">
@@ -68,7 +68,7 @@ export default function LessonsPage() {
               </blockquote>
               <button
                 onClick={() => speak(lesson.phrase)}
-                className="shrink-0 p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors"
+                className="shrink-0 p-2.5 rounded-xl bg-norte-blue-light hover:bg-norte-blue/10 text-norte-blue transition-colors"
               >
                 <Volume2 className="h-5 w-5" />
               </button>
@@ -84,7 +84,7 @@ export default function LessonsPage() {
         <Card>
           <CardContent>
             <CardTitle className="mb-4 flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-indigo-600" />
+              <BookOpen className="h-5 w-5 text-norte-blue600" />
               Vocabulário
             </CardTitle>
             <div className="space-y-3">
@@ -97,7 +97,7 @@ export default function LessonsPage() {
                     <span className="font-medium text-slate-900">{word}</span>
                     <button
                       onClick={() => speak(word)}
-                      className="text-indigo-400 hover:text-indigo-600"
+                      className="text-norte-blue hover:text-norte-blue/80"
                     >
                       <Volume2 className="h-4 w-4" />
                     </button>

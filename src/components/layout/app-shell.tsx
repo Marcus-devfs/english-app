@@ -1,30 +1,39 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { GraduationCap, LogOut } from "lucide-react";
+import { LogOut, Flame } from "lucide-react";
 import { TabBar, TAB_BAR_HEIGHT } from "@/components/layout/tab-bar";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Início",
-  "/lessons": "Lição do Dia",
+  "/trilha": "Sua trilha",
+  "/lessons": "Lição do dia",
   "/quiz": "Quiz",
-  "/vocabulary": "Estudar",
-  "/chat": "Chat com IA",
+  "/vocabulary": "Vocabulário",
+  "/chat": "Conversar com IA",
 };
 
 interface AppShellProps {
   children: React.ReactNode;
   userName?: string;
+  streak?: number;
+  showHeader?: boolean;
 }
 
-export function AppShell({ children, userName }: AppShellProps) {
+export function AppShell({
+  children,
+  userName,
+  streak = 0,
+  showHeader = true,
+}: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
 
   const pageTitle =
     Object.entries(PAGE_TITLES).find(([path]) => pathname.startsWith(path))?.[1] ??
-    "EnglishPath";
+    "Norte";
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -32,31 +41,46 @@ export function AppShell({ children, userName }: AppShellProps) {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-slate-50 shadow-xl lg:my-4 lg:min-h-[calc(100dvh-2rem)] lg:rounded-[2rem] lg:border lg:border-slate-200 lg:overflow-hidden">
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-100 bg-white/90 px-4 py-3 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600">
-            <GraduationCap className="h-4 w-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold leading-tight text-slate-900">
-              {pageTitle}
-            </p>
-            {userName && (
-              <p className="truncate text-[11px] text-slate-500">
-                Olá, {userName.split(" ")[0]}
+    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-norte-bg shadow-xl lg:my-4 lg:min-h-[calc(100dvh-2rem)] lg:rounded-[2rem] lg:border lg:border-slate-200 lg:overflow-hidden">
+      {showHeader && (
+        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-100/80 bg-norte-bg/95 px-4 py-3 backdrop-blur-xl">
+          <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
+            <Image
+              src="/icons/norte-icon-192.png"
+              alt="Norte"
+              width={32}
+              height={32}
+              className="rounded-lg shrink-0"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold leading-tight text-norte-ink">
+                {pageTitle}
               </p>
+              {userName && pathname === "/dashboard" && (
+                <p className="truncate text-[11px] text-slate-500">
+                  Olá, {userName.split(" ")[0]}
+                </p>
+              )}
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {streak > 0 && (
+              <div className="flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-600">
+                <Flame className="h-3.5 w-3.5" />
+                {streak}
+              </div>
             )}
+            <button
+              onClick={handleLogout}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 active:scale-95"
+              aria-label="Sair"
+            >
+              <LogOut className="h-[18px] w-[18px]" />
+            </button>
           </div>
-        </Link>
-        <button
-          onClick={handleLogout}
-          className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 active:scale-95"
-          aria-label="Sair"
-        >
-          <LogOut className="h-[18px] w-[18px]" />
-        </button>
-      </header>
+        </header>
+      )}
 
       <main
         className="flex min-h-0 flex-1 flex-col overflow-hidden"

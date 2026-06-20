@@ -13,7 +13,7 @@ import {
   type CEFRLevel,
   type AssessmentQuestion,
 } from "@/types";
-import { getSpeechRecognition, type ISpeechRecognition, type ISpeechRecognitionEvent } from "@/lib/speech";
+import { VoiceRecorder } from "@/components/ui/voice-recorder";
 import {
   Briefcase,
   Plane,
@@ -21,8 +21,6 @@ import {
   MessageCircle,
   Building2,
   Code2,
-  Mic,
-  MicOff,
   ChevronRight,
   Sparkles,
 } from "lucide-react";
@@ -57,12 +55,6 @@ export default function OnboardingPage() {
     strengths: string[];
     weaknesses: string[];
   } | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recognition, setRecognition] = useState<ISpeechRecognition | null>(null);
-
-  useEffect(() => {
-    setRecognition(getSpeechRecognition());
-  }, []);
 
   const loadQuestions = useCallback(async () => {
     const res = await fetch("/api/assessment/questions");
@@ -110,40 +102,18 @@ export default function OnboardingPage() {
     }
   }
 
-  function startRecording(questionId: string) {
-    if (!recognition) {
-      setAnswers((prev) => ({
-        ...prev,
-        [questionId]: "I work as a developer and I build web applications.",
-      }));
-      return;
-    }
-
-    recognition.onresult = (event: ISpeechRecognitionEvent) => {
-      const transcript = event.results[0][0].transcript;
-      setAnswers((prev) => ({ ...prev, [questionId]: transcript }));
-      setIsRecording(false);
-    };
-
-    recognition.onerror = () => setIsRecording(false);
-    recognition.onend = () => setIsRecording(false);
-
-    setIsRecording(true);
-    recognition.start();
-  }
-
   const question = questions[currentQ];
   const progress = step === "goal" ? 33 : step === "assessment" ? 66 : 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/40">
+    <div className="min-h-dvh bg-norte-bg overflow-y-auto">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5 text-indigo-600" />
-            <span className="font-semibold text-slate-900">Configurando sua trilha</span>
+            <Sparkles className="h-5 w-5 text-norte-blue" />
+            <span className="font-semibold text-norte-ink">Configurando sua trilha</span>
           </div>
-          <ProgressBar value={progress} label="Progresso do onboarding" color="indigo" />
+          <ProgressBar value={progress} label="Progresso do onboarding" color="blue" />
         </div>
 
         {step === "goal" && (
@@ -160,12 +130,12 @@ export default function OnboardingPage() {
                 <Card
                   key={id}
                   hover
-                  className={goal === id ? "border-indigo-400 ring-2 ring-indigo-100" : ""}
+                  className={goal === id ? "border-norte-blue/40 ring-2 ring-norte-blue-light" : ""}
                   onClick={() => setGoal(id)}
                 >
                   <CardContent className="flex items-center gap-4 py-4">
-                    <div className="h-11 w-11 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                      <Icon className="h-5 w-5 text-indigo-600" />
+                    <div className="h-11 w-11 rounded-xl bg-norte-blue-light flex items-center justify-center shrink-0">
+                      <Icon className="h-5 w-5 text-norte-blue" />
                     </div>
                     <div>
                       <p className="font-semibold text-slate-900">{GOAL_LABELS[id]}</p>
@@ -187,8 +157,8 @@ export default function OnboardingPage() {
                     onClick={() => setSelfLevel(level)}
                     className={`p-3 rounded-xl border text-sm font-medium transition-all ${
                       selfLevel === level
-                        ? "border-indigo-400 bg-indigo-50 text-indigo-700"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200"
+                        ? "border-norte-blue/40 bg-norte-blue-light text-norte-blue"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-norte-blue/20"
                     }`}
                   >
                     {LEVEL_LABELS[level]}
@@ -231,8 +201,8 @@ export default function OnboardingPage() {
                     }
                     className={`w-full p-4 rounded-xl border text-left text-sm transition-all ${
                       answers[question.id] === option
-                        ? "border-indigo-400 bg-indigo-50 text-indigo-800"
-                        : "border-slate-200 bg-white hover:border-indigo-200"
+                        ? "border-norte-blue/40 bg-norte-blue-light text-norte-ink"
+                        : "border-slate-200 bg-white hover:border-norte-blue/20"
                     }`}
                   >
                     {option}
@@ -249,42 +219,16 @@ export default function OnboardingPage() {
                 onChange={(e) =>
                   setAnswers((prev) => ({ ...prev, [question.id]: e.target.value }))
                 }
-                className="w-full h-12 px-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-12 px-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-norte-blue"
               />
             )}
 
             {question.type === "speaking" && (
-              <div className="space-y-4">
-                <div className="p-6 rounded-2xl bg-indigo-50 border border-indigo-100 text-center">
-                  <p className="text-sm text-indigo-700 mb-4">
-                    Clique no microfone e fale em inglês. Sua resposta será transcrita automaticamente.
-                  </p>
-                  <button
-                    onClick={() => startRecording(question.id)}
-                    disabled={isRecording}
-                    className={`h-16 w-16 rounded-full mx-auto flex items-center justify-center transition-all ${
-                      isRecording
-                        ? "bg-red-500 animate-pulse"
-                        : "bg-indigo-600 hover:bg-indigo-700"
-                    }`}
-                  >
-                    {isRecording ? (
-                      <MicOff className="h-7 w-7 text-white" />
-                    ) : (
-                      <Mic className="h-7 w-7 text-white" />
-                    )}
-                  </button>
-                  {isRecording && (
-                    <p className="text-sm text-red-600 mt-3 animate-pulse">Gravando...</p>
-                  )}
-                </div>
-                {answers[question.id] && (
-                  <div className="p-4 rounded-xl bg-white border border-slate-200">
-                    <p className="text-xs text-slate-500 mb-1">Sua resposta:</p>
-                    <p className="text-slate-900">{answers[question.id]}</p>
-                  </div>
-                )}
-              </div>
+              <VoiceRecorder
+                onComplete={(text) =>
+                  setAnswers((prev) => ({ ...prev, [question.id]: text }))
+                }
+              />
             )}
 
             <div className="flex gap-3">
@@ -314,7 +258,7 @@ export default function OnboardingPage() {
         {step === "diagnosis" && diagnosis && (
           <div className="space-y-6">
             <div className="text-center">
-              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-4">
+              <div className="h-20 w-20 rounded-full bg-norte-ink flex items-center justify-center mx-auto mb-4">
                 <span className="text-3xl font-bold text-white">{diagnosis.diagnosedLevel}</span>
               </div>
               <h1 className="text-2xl font-bold text-slate-900">Seu diagnóstico está pronto!</h1>
@@ -325,9 +269,9 @@ export default function OnboardingPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600">Pontuação geral</span>
-                  <span className="text-2xl font-bold text-indigo-600">{diagnosis.score}%</span>
+                  <span className="text-2xl font-bold text-norte-blue">{diagnosis.score}%</span>
                 </div>
-                <ProgressBar value={diagnosis.score} color="indigo" />
+                <ProgressBar value={diagnosis.score} color="blue" />
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   {Object.entries(diagnosis.skillBreakdown).map(([skill, score]) => (
