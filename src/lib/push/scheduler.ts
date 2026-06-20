@@ -1,9 +1,8 @@
 import {
+  DAILY_REMINDER_SLOTS,
   HIGH_STREAK_THRESHOLD,
   isAnyReminderHour,
-  isDefaultReminderSlot,
   isEveningReminderSlot,
-  isMorningReminderSlot,
   MAX_DAILY_PUSHES,
   MAX_DAILY_PUSHES_HIGH_STREAK,
   MIN_HOURS_BETWEEN_PUSHES,
@@ -36,41 +35,40 @@ function hoursSince(date: Date): number {
   return (Date.now() - date.getTime()) / (1000 * 60 * 60);
 }
 
-/** Retorna o slot esperado para o próximo push (0 = 1º, 1 = 2º). */
+function slotIndex(hour: number): number {
+  return DAILY_REMINDER_SLOTS.indexOf(hour as (typeof DAILY_REMINDER_SLOTS)[number]);
+}
+
+/** Retorna a hora do slot para o próximo push ou null se fora da janela. */
 export function getExpectedSlotHour(
   reminderHour: number,
   sentCount: number,
-  currentHour: number,
-  lastSentHour?: number
+  currentHour: number
 ): number | null {
-  if (isAnyReminderHour(reminderHour)) {
-    if (sentCount === 0) {
-      // 1º do dia: 8h ou qualquer hora entre 19h e 21h
-      if (isDefaultReminderSlot(currentHour)) {
-        return currentHour;
-      }
-      return null;
+  if (sentCount >= DAILY_REMINDER_SLOTS.length) return null;
+
+  const targetSlot = DAILY_REMINDER_SLOTS[sentCount];
+
+  if (currentHour === targetSlot) return currentHour;
+
+  // Catch-up: perdeu slot anterior — ainda pode receber em slot posterior hoje
+  if (currentHour > targetSlot) {
+    const currentIdx = slotIndex(currentHour);
+    const targetIdx = slotIndex(targetSlot);
+
+    if (currentIdx >= 0 && currentIdx >= targetIdx) {
+      return currentHour;
     }
 
-    if (sentCount === 1) {
-      // 2º do dia: 19h–21h, só se o 1º foi de manhã
-      if (
-        isEveningReminderSlot(currentHour) &&
-        lastSentHour !== undefined &&
-        isMorningReminderSlot(lastSentHour)
-      ) {
-        return currentHour;
-      }
-      return null;
+    if (targetSlot >= 19 && isEveningReminderSlot(currentHour)) {
+      // 3º push (19h): flexível 19–21h; 4º push (21h): só às 21h
+      if (targetSlot === 21 && currentHour !== 21) return null;
+      return currentHour;
     }
 
-    return null;
-  }
-
-  if (sentCount === 0) return reminderHour;
-
-  if (sentCount === 1 && reminderHour < 18) {
-    return isEveningReminderSlot(currentHour) ? currentHour : null;
+    if (sentCount === 0 && isEveningReminderSlot(currentHour)) {
+      return currentHour;
+    }
   }
 
   return null;
@@ -128,14 +126,17 @@ export function evaluateReminderSchedule(input: EvaluateScheduleInput): Schedule
     return { shouldSend: false, reason: "cooldown" };
   }
 
-  const expectedSlot = getExpectedSlotHour(
-    reminderHour,
-    sentCount,
-    currentHour,
-    notificationState?.lastSentAt
-      ? getCurrentHourInTimezone(timezone, new Date(notificationState.lastSentAt))
-      : undefined
-  );
+  let expectedSlot: number | null;
+
+  if (isAnyReminderHour(reminderHour)) {
+    expectedSlot = getExpectedSlotHour(reminderHour, sentCount, currentHour);
+  } else if (sentCount === 0) {
+    expectedSlot = currentHour === reminderHour ? reminderHour : null;
+  } else if (reminderHour >= 19) {
+    expectedSlot = null;
+  } else {
+    expectedSlot = getExpectedSlotHour(reminderHour, sentCount, currentHour);
+  }
 
   if (!force && expectedSlot === null) {
     return { shouldSend: false, reason: "no_slot_for_count" };

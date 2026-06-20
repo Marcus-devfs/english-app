@@ -246,6 +246,6 @@ export function resolveNotificationType(
   streakDays: number
 ): PushNotificationType {
   if (sentCount === 0) return "daily_invite";
-  if (streakDays >= 3) return "streak_risk";
+  if (sentCount >= 3 || streakDays >= 3) return "streak_risk";
   return "gentle_nudge";
 }

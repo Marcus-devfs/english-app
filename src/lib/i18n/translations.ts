@@ -77,7 +77,7 @@ export const translations: Record<AppLanguage, Record<TranslationKey, string>> =
     "profile.notifications.desc": "Lembretes para manter sua streak e meta diária",
     "profile.reminderTime": "Horário do lembrete",
     "profile.reminderAny": "Qualquer horário (padrão)",
-    "profile.reminderAny.desc": "Lembretes automáticos às 8h e entre 19h e 21h (seu fuso), no máximo 2 por dia.",
+    "profile.reminderAny.desc": "Lembretes automáticos às 8h, 12h, 19h e 21h (seu fuso), no máximo 4 por dia.",
     "profile.save": "Salvar alterações",
     "profile.saved": "Perfil atualizado!",
     "profile.logout": "Sair da conta",

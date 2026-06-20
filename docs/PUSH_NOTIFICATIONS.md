@@ -77,14 +77,16 @@ Deep link por objetivo:
 | Push | Horário (fuso local) |
 |------|----------------------|
 | 1º | **8h** |
-| 2º | **19h** (só se não praticou e já recebeu o 1º) |
+| 2º | **12h** |
+| 3º | **19h** (flexível 19h–21h se perdeu slots anteriores) |
+| 4º | **21h** |
 
 ### Modo horário fixo (ex.: 18h)
 
 | Push | Horário |
 |------|---------|
 | 1º | Horário escolhido |
-| 2º | **19h** (só se o horário fixo for antes das 18h) |
+| 2º–4º | **12h, 19h, 21h** (só se o horário fixo for antes das 19h) |
 
 Se o usuário escolhe 19h ou mais tarde → **apenas 1 push/dia**.
 
@@ -93,8 +95,8 @@ Se o usuário escolhe 19h ou mais tarde → **apenas 1 push/dia**.
 | Regra | Valor |
 |-------|-------|
 | Quiet hours | **22h – 7h** (não envia) |
-| Máx. pushes/dia | **2** (3 se streak ≥ 14 — reservado) |
-| Cooldown entre pushes | **4 horas** |
+| Máx. pushes/dia | **4** (5 se streak ≥ 14) |
+| Cooldown entre pushes | **2 horas** |
 | Se praticou hoje | **0 pushes** |
 
 ## Estado no MongoDB
@@ -173,7 +175,7 @@ Campo `skipped` explica por que usuários foram ignorados:
 |--------|-------------|
 | `already_studied_today` | Já praticou hoje |
 | `quiet_hours` | Entre 22h e 7h |
-| `daily_cap_reached` | Já recebeu 2+ pushes |
+| `daily_cap_reached` | Já recebeu 4+ pushes |
 | `cooldown` | Menos de 4h desde o último |
 | `wrong_slot` | Hora atual não é slot de envio |
 | `no_slot_for_count` | Sem 2º slot configurado |
