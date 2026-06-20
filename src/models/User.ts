@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 import type { CEFRLevel, LearningGoal, UserProgress } from "@/types";
 import type { UserPreferences } from "@/lib/i18n/translations";
 import { DEFAULT_PREFERENCES } from "@/lib/i18n/translations";
+import type { NotificationState } from "@/lib/push/types";
 
 export interface PushSubscriptionData {
   endpoint: string;
@@ -20,6 +21,7 @@ export interface IUser extends Document {
   progress: UserProgress;
   preferences: UserPreferences;
   pushSubscriptions: PushSubscriptionData[];
+  notificationState?: NotificationState;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +69,19 @@ const PushSubscriptionSchema = new Schema(
   { _id: false }
 );
 
+const NotificationStateSchema = new Schema(
+  {
+    date: { type: String, required: true },
+    sentCount: { type: Number, default: 0, min: 0 },
+    lastSentAt: { type: Date },
+    lastType: {
+      type: String,
+      enum: ["daily_invite", "gentle_nudge", "streak_risk"],
+    },
+  },
+  { _id: false }
+);
+
 const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
@@ -85,6 +100,7 @@ const UserSchema = new Schema<IUser>(
     progress: { type: ProgressSchema, default: () => ({}) },
     preferences: { type: PreferencesSchema, default: () => ({ ...DEFAULT_PREFERENCES }) },
     pushSubscriptions: { type: [PushSubscriptionSchema], default: [] },
+    notificationState: { type: NotificationStateSchema },
   },
   { timestamps: true }
 );

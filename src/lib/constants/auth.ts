@@ -1,3 +1,7 @@
-export const WELCOME_KEY = "norte_welcome_seen";
-
-export type AuthTab = "login" | "register";
+export {
+  WELCOME_KEY,
+  PUSH_MODAL_SEEN_KEY,
+  PUSH_CARD_DISMISSED_KEY,
+  PUSH_CARD_DISMISS_DAYS,
+  type AuthTab,
+} from "@/lib/constants/storage";
