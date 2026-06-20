@@ -1,7 +1,8 @@
 import { connectDB } from "@/lib/db/mongodb";
 import { User, type IUser } from "@/models/User";
-import { sendPushNotification, isPushConfigured } from "@/lib/push/web-push";
+import { sendPushNotification } from "@/lib/push/web-push";
 import { buildPushPayload } from "@/lib/push/personalize";
+import { logNotificationDelivery } from "@/lib/push/log-notification";
 import { evaluateReminderSchedule } from "@/lib/push/scheduler";
 import { getTodayInTimezone, resolveUserTimezone } from "@/lib/push/timezone";
 import type { NotificationState, PushNotificationType } from "@/lib/push/types";
@@ -72,6 +73,7 @@ export async function processReminders(force = false): Promise<ProcessRemindersR
 
     const payload = buildPushPayload(user as IUser, decision.type);
     let userSent = 0;
+    const devicesTargeted = user.pushSubscriptions.length;
 
     for (const sub of user.pushSubscriptions) {
       try {
@@ -90,11 +92,29 @@ export async function processReminders(force = false): Promise<ProcessRemindersR
       }
     }
 
+    const currentCount =
+      user.notificationState?.date === today
+        ? (user.notificationState.sentCount ?? 0)
+        : 0;
+
+    await logNotificationDelivery({
+      userId: String(user._id),
+      userEmail: user.email,
+      userName: user.name,
+      type: decision.type,
+      title: payload.title,
+      body: payload.body,
+      url: payload.url,
+      localDate: today,
+      timezone,
+      slotHour: decision.slotHour,
+      sentCountAfter: currentCount + 1,
+      devicesTargeted,
+      devicesDelivered: userSent,
+      scheduleReason: decision.reason,
+    });
+
     if (userSent > 0) {
-      const currentCount =
-        user.notificationState?.date === today
-          ? (user.notificationState.sentCount ?? 0)
-          : 0;
       await markNotificationSent(String(user._id), today, currentCount, decision.type);
     }
   }

@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
 import { ChatMessage } from "@/models/ChatMessage";
 import { Assessment } from "@/models/Assessment";
+import { NotificationLog } from "@/models/NotificationLog";
 import { getSession } from "@/lib/auth/session";
 import { COOKIE_NAME } from "@/lib/auth/session";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
@@ -18,6 +19,7 @@ export async function DELETE() {
     await Promise.all([
       ChatMessage.deleteMany({ userId }),
       Assessment.deleteMany({ userId }),
+      NotificationLog.deleteMany({ userId }),
       User.findByIdAndDelete(userId),
     ]);
 

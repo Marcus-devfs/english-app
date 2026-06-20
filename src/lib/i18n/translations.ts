@@ -42,6 +42,9 @@ export type TranslationKey =
   | "profile.practiceMinutes"
   | "profile.notifications"
   | "profile.notifications.desc"
+  | "profile.notificationHistory"
+  | "profile.notificationHistory.empty"
+  | "profile.notificationHistory.failed"
   | "profile.reminderTime"
   | "profile.reminderAny"
   | "profile.reminderAny.desc"
@@ -75,6 +78,9 @@ export const translations: Record<AppLanguage, Record<TranslationKey, string>> =
     "profile.practiceMinutes": "Minutos por dia",
     "profile.notifications": "Notificações push",
     "profile.notifications.desc": "Lembretes para manter sua streak e meta diária",
+    "profile.notificationHistory": "Histórico de notificações",
+    "profile.notificationHistory.empty": "Nenhuma notificação enviada ainda.",
+    "profile.notificationHistory.failed": "Falhou",
     "profile.reminderTime": "Horário do lembrete",
     "profile.reminderAny": "Qualquer horário (padrão)",
     "profile.reminderAny.desc": "Lembretes automáticos às 8h, 12h, 19h e 21h (seu fuso), no máximo 4 por dia.",
@@ -107,9 +113,12 @@ export const translations: Record<AppLanguage, Record<TranslationKey, string>> =
     "profile.practiceMinutes": "Minutes per day",
     "profile.notifications": "Push notifications",
     "profile.notifications.desc": "Reminders to keep your streak and daily goal",
+    "profile.notificationHistory": "Notification history",
+    "profile.notificationHistory.empty": "No notifications sent yet.",
+    "profile.notificationHistory.failed": "Failed",
     "profile.reminderTime": "Reminder time",
     "profile.reminderAny": "Any time (default)",
-    "profile.reminderAny.desc": "Automatic reminders at 8 AM and 7 PM (your timezone), max 2 per day.",
+    "profile.reminderAny.desc": "Automatic reminders at 8 AM, 12 PM, 7 PM and 9 PM (your timezone), max 4 per day.",
     "profile.save": "Save changes",
     "profile.saved": "Profile updated!",
     "profile.logout": "Sign out",

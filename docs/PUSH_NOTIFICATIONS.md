@@ -34,6 +34,8 @@ cron-job.org (1×/hora)
 | `src/lib/push/messages.ts` | Templates por objetivo × tipo × idioma |
 | `src/lib/push/personalize.ts` | Monta payload final com variáveis |
 | `src/lib/push/process-reminders.ts` | Orquestra envio e persiste estado |
+| `src/lib/push/log-notification.ts` | Grava histórico em `notificationlogs` |
+| `src/models/NotificationLog.ts` | Schema do histórico |
 | `src/lib/push/web-push.ts` | Integração VAPID / web-push |
 | `src/lib/push/client.ts` | Subscribe/unsubscribe no browser |
 | `src/app/api/push/reminders/route.ts` | Endpoint do cron |
@@ -113,6 +115,48 @@ Campo `notificationState` no documento `User`:
 ```
 
 Reset automático: se `date !== hoje`, `sentCount` é tratado como 0.
+
+## Histórico (`notificationlogs`)
+
+Cada tentativa de envio gera um documento na collection **`notificationlogs`**:
+
+```typescript
+{
+  userId: ObjectId,
+  userEmail: "dallila.almeida@outlook.com",
+  userName: "Dallila Almeida",
+  type: "daily_invite",
+  title: "Norte · Inglês para viagem ✈️",
+  body: "Oi Dallila! 15 min de frases úteis...",
+  url: "/vocabulary",
+  status: "sent",              // ou "failed"
+  localDate: "2026-06-20",
+  timezone: "America/Sao_Paulo",
+  slotHour: 19,
+  sentCountAfter: 1,           // qual push do dia (1–4)
+  devicesTargeted: 1,
+  devicesDelivered: 1,
+  scheduleReason: "scheduled",
+  createdAt: ISODate()
+}
+```
+
+Consultas úteis no Atlas:
+
+```js
+// Por usuário
+db.notificationlogs.find({ userEmail: "dallila.almeida@outlook.com" }).sort({ createdAt: -1 })
+
+// Hoje
+db.notificationlogs.find({ localDate: "2026-06-20" }).sort({ createdAt: -1 })
+
+// Falhas
+db.notificationlogs.find({ status: "failed" })
+```
+
+API autenticada: `GET /api/notifications?limit=20` — histórico do usuário logado.
+
+No app: **Perfil → Histórico de notificações** (últimas 8).
 
 ## Configuração
 

@@ -40,6 +40,17 @@ interface ProfileUser {
   hasPushSubscription: boolean;
 }
 
+interface NotificationLogItem {
+  _id: string;
+  title: string;
+  body: string;
+  status: "sent" | "failed";
+  localDate: string;
+  slotHour?: number;
+  sentCountAfter: number;
+  createdAt: string;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { t, setLanguage, setPreferences, preferences, refreshFromServer } = useLocale();
@@ -59,6 +70,7 @@ export default function ProfilePage() {
   const [pushSupported, setPushSupported] = useState(false);
   const [showPermissionHelp, setShowPermissionHelp] = useState(false);
   const [showGoalPicker, setShowGoalPicker] = useState(false);
+  const [notificationLogs, setNotificationLogs] = useState<NotificationLogItem[]>([]);
   const { isDenied, refresh: refreshPermission } = useNotificationPermissionWatch();
 
   useEffect(() => {
@@ -85,6 +97,14 @@ export default function ProfilePage() {
           setLanguageLocal(u.preferences.language);
         }
         setLoading(false);
+      });
+
+    fetch("/api/notifications?limit=8")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          setNotificationLogs(data.data.notifications);
+        }
       });
   }, []);
 
@@ -435,6 +455,44 @@ export default function ProfilePage() {
                   </button>
                 </div>
               )}
+
+              <div className="mt-4 border-t border-slate-100 pt-4">
+                <p className="text-sm font-medium text-norte-ink mb-2">
+                  {t("profile.notificationHistory")}
+                </p>
+                {notificationLogs.length === 0 ? (
+                  <p className="text-xs text-slate-500">{t("profile.notificationHistory.empty")}</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {notificationLogs.map((log) => (
+                      <li
+                        key={log._id}
+                        className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium text-norte-ink line-clamp-1">
+                            {log.title}
+                          </p>
+                          {log.status === "failed" && (
+                            <span className="shrink-0 text-[10px] font-semibold uppercase text-red-500">
+                              {t("profile.notificationHistory.failed")}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{log.body}</p>
+                        <p className="text-[10px] text-slate-400 mt-1">
+                          {new Date(log.createdAt).toLocaleString(
+                            language === "pt" ? "pt-BR" : "en-US",
+                            { dateStyle: "short", timeStyle: "short" }
+                          )}
+                          {log.slotHour !== undefined && ` · ${String(log.slotHour).padStart(2, "0")}h`}
+                          {` · #${log.sentCountAfter}`}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         </section>
