@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { isAdminEmail } from "@/lib/auth/admin-emails";
 
 const PUBLIC_ROUTES = [
   "/",
@@ -63,7 +63,12 @@ export async function middleware(request: NextRequest) {
       pathname === "/auth" ||
       pathname === "/welcome")
   ) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const destination = isAdminEmail(session.email) ? "/admin" : "/dashboard";
+    return NextResponse.redirect(new URL(destination, request.url));
+  }
+
+  if (session && pathname === "/" && isAdminEmail(session.email)) {
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   return NextResponse.next();

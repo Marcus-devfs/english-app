@@ -18,7 +18,7 @@ import {
   NotificationPermissionHelp,
   useNotificationPermissionWatch,
 } from "@/components/pwa/notification-permission-help";
-import { Bell, BellOff, LogOut, ChevronRight } from "lucide-react";
+import { Bell, BellOff, LogOut, ChevronRight, Shield } from "lucide-react";
 import { REMINDER_ANY_HOUR } from "@/lib/constants/push";
 import { cn } from "@/lib/utils/cn";
 
@@ -71,6 +71,7 @@ export default function ProfilePage() {
   const [showPermissionHelp, setShowPermissionHelp] = useState(false);
   const [showGoalPicker, setShowGoalPicker] = useState(false);
   const [notificationLogs, setNotificationLogs] = useState<NotificationLogItem[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { isDenied, refresh: refreshPermission } = useNotificationPermissionWatch();
 
   useEffect(() => {
@@ -104,6 +105,14 @@ export default function ProfilePage() {
       .then((data) => {
         if (data.success) {
           setNotificationLogs(data.data.notifications);
+        }
+      });
+
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.data.user.isAdmin) {
+          setIsAdmin(true);
         }
       });
   }, []);
@@ -499,6 +508,17 @@ export default function ProfilePage() {
 
         {/* Atalhos */}
         <div className="space-y-2">
+          {isAdmin && (
+            <Link href="/admin">
+              <div className="flex items-center justify-between rounded-2xl bg-norte-blue-light border border-norte-blue/20 p-4 active:scale-[0.99] transition-transform">
+                <span className="flex items-center gap-2 text-sm font-medium text-norte-blue">
+                  <Shield className="h-4 w-4" />
+                  Painel admin
+                </span>
+                <ChevronRight className="h-4 w-4 text-norte-blue" />
+              </div>
+            </Link>
+          )}
           <Link href="/install">
             <div className="flex items-center justify-between rounded-2xl bg-white border border-slate-100 p-4 active:scale-[0.99] transition-transform">
               <span className="text-sm font-medium text-norte-ink">Instalar app na tela inicial</span>

@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
 import { getSession } from "@/lib/auth/session";
+import { isAdminUser, syncAdminRole } from "@/lib/auth/admin";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
 
 export async function GET() {
@@ -11,6 +12,8 @@ export async function GET() {
     await connectDB();
     const user = await User.findById(session.userId);
     if (!user) return apiError("Usuário não encontrado", 404);
+
+    await syncAdminRole(user);
 
     return apiSuccess({
       user: {
@@ -23,6 +26,7 @@ export async function GET() {
         onboardingCompleted: user.onboardingCompleted,
         progress: user.progress,
         preferences: user.preferences,
+        isAdmin: isAdminUser(user),
       },
     });
   } catch (error) {

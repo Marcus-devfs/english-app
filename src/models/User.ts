@@ -10,10 +10,13 @@ export interface PushSubscriptionData {
   createdAt: Date;
 }
 
+export type UserRole = "user" | "admin";
+
 export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
+  role: UserRole;
   goal?: LearningGoal;
   selfAssessedLevel?: CEFRLevel;
   diagnosedLevel?: CEFRLevel;
@@ -93,6 +96,7 @@ const UserSchema = new Schema<IUser>(
       trim: true,
     },
     password: { type: String, required: true, select: false },
+    role: { type: String, enum: ["user", "admin"], default: "user" },
     goal: { type: String },
     selfAssessedLevel: { type: String },
     diagnosedLevel: { type: String },

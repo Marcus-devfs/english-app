@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
 import { WELCOME_KEY, type AuthTab } from "@/lib/constants/auth";
+import { getAuthenticatedRedirectPath } from "@/lib/auth/redirect";
 import { cn } from "@/lib/utils/cn";
 
 function AuthContent() {
@@ -36,9 +37,7 @@ function AuthContent() {
         const res = await fetch("/api/auth/me");
         const data = await res.json();
         if (data.success) {
-          router.replace(
-            data.data.user.onboardingCompleted ? "/dashboard" : "/onboarding"
-          );
+          router.replace(getAuthenticatedRedirectPath(data.data.user));
           return;
         }
       } catch {
@@ -81,11 +80,7 @@ function AuthContent() {
 
       localStorage.setItem(WELCOME_KEY, "1");
 
-      if (tab === "register" || !data.data.user.onboardingCompleted) {
-        router.push("/onboarding");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push(getAuthenticatedRedirectPath(data.data.user));
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {

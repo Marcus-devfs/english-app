@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loading } from "@/components/ui/loading";
 import { WELCOME_KEY } from "@/lib/constants/auth";
+import { getAuthenticatedRedirectPath } from "@/lib/auth/redirect";
 
 export default function HomePage() {
   const router = useRouter();
@@ -15,11 +16,7 @@ export default function HomePage() {
         const data = await res.json();
 
         if (data.success) {
-          if (!data.data.user.onboardingCompleted) {
-            router.replace("/onboarding");
-          } else {
-            router.replace("/dashboard");
-          }
+          router.replace(getAuthenticatedRedirectPath(data.data.user));
           return;
         }
       } catch {

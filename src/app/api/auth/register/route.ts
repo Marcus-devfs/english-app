@@ -8,6 +8,7 @@ import { getClientIp } from "@/lib/security/client-ip";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
 import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
 import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
+import { isAdminEmail } from "@/lib/auth/admin";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       name,
       email,
       password: hashedPassword,
+      role: isAdminEmail(email) ? "admin" : "user",
     });
 
     const token = await signToken({ userId: user._id.toString(), email: user.email });
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         onboardingCompleted: user.onboardingCompleted,
+        isAdmin: isAdminEmail(email),
       },
     }, 201);
 

@@ -8,6 +8,7 @@ import { getClientIp } from "@/lib/security/client-ip";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
 import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
 import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
+import { syncAdminRole, isAdminUser } from "@/lib/auth/admin";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
@@ -34,6 +35,8 @@ export async function POST(request: NextRequest) {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return apiError("Email ou senha incorretos", 401);
 
+    await syncAdminRole(user);
+
     const token = await signToken({ userId: user._id.toString(), email: user.email });
 
     const response = apiSuccess({
@@ -44,6 +47,7 @@ export async function POST(request: NextRequest) {
         onboardingCompleted: user.onboardingCompleted,
         goal: user.goal,
         diagnosedLevel: user.diagnosedLevel,
+        isAdmin: isAdminUser(user),
       },
     });
 
