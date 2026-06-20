@@ -18,6 +18,7 @@ function AuthContent() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -62,7 +63,7 @@ function AuthContent() {
       const body =
         tab === "login"
           ? { email, password }
-          : { name, email, password };
+          : { name, email, password, acceptedTerms: acceptedTerms as true };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -185,6 +186,29 @@ function AuthContent() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+
+          {tab === "register" && (
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-norte-blue accent-norte-blue"
+                required
+              />
+              <span className="text-xs text-slate-600 leading-relaxed">
+                Li e aceito os{" "}
+                <Link href="/termos" target="_blank" className="text-norte-blue underline">
+                  Termos de Uso
+                </Link>{" "}
+                e a{" "}
+                <Link href="/privacidade" target="_blank" className="text-norte-blue underline">
+                  Política de Privacidade
+                </Link>
+                .
+              </span>
+            </label>
+          )}
 
           <Button type="submit" className="w-full" loading={loading}>
             {tab === "login" ? "Entrar" : "Criar conta"}

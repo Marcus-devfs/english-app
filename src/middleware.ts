@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 
-const PUBLIC_ROUTES = ["/", "/welcome", "/install", "/auth", "/login", "/register", "/~offline"];
+const PUBLIC_ROUTES = [
+  "/",
+  "/welcome",
+  "/install",
+  "/auth",
+  "/login",
+  "/register",
+  "/privacidade",
+  "/termos",
+  "/~offline",
+];
 const AUTH_API = ["/api/auth/login", "/api/auth/register"];
 const CRON_API = ["/api/push/reminders"];
 
@@ -36,12 +46,16 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthApi) return NextResponse.next();
 
-  // Sem sessão → entry point (não login direto)
   if (!session && !isPublic) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { success: false, error: "Não autenticado" },
+        { status: 401 }
+      );
+    }
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Com sessão → não ficar em telas públicas de auth
   if (
     session &&
     (pathname === "/login" ||

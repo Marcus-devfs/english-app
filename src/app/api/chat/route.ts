@@ -5,6 +5,8 @@ import { ChatMessage } from "@/models/ChatMessage";
 import { getSession } from "@/lib/auth/session";
 import { chatMessageSchema } from "@/lib/validations/auth";
 import { getAIResponse } from "@/services/ai.service";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
 import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
 import type { LearningGoal, CEFRLevel } from "@/types";
 
@@ -33,6 +35,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = chatMessageSchema.safeParse(body);
     if (!parsed.success) return handleZodError(parsed.error);
+
+    const chatRate = await checkRateLimit(
+      `chat:${session.userId}`,
+      RATE_LIMITS.chatDaily.limit,
+      RATE_LIMITS.chatDaily.windowMs
+    );
+    if (!chatRate.allowed) {
+      return rateLimitExceededResponse({
+        ...chatRate,
+        retryAfterSec: chatRate.retryAfterSec,
+      });
+    }
 
     await connectDB();
     const user = await User.findById(session.userId);

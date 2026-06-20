@@ -8,6 +8,9 @@ export const registerSchema = z.object({
     .min(8, "Senha deve ter pelo menos 8 caracteres")
     .regex(/[A-Z]/, "Senha deve conter pelo menos uma letra maiúscula")
     .regex(/[0-9]/, "Senha deve conter pelo menos um número"),
+  acceptedTerms: z.literal(true, {
+    message: "Você precisa aceitar os termos e a política de privacidade",
+  }),
 });
 
 export const loginSchema = z.object({

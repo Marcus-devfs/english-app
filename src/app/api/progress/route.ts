@@ -2,15 +2,28 @@ import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
 import { getSession } from "@/lib/auth/session";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
+import { progressUpdateSchema } from "@/lib/validations/progress";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
+import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return apiError("Não autenticado", 401);
 
+    const rate = await checkRateLimit(
+      `progress:${session.userId}`,
+      RATE_LIMITS.progressHourly.limit,
+      RATE_LIMITS.progressHourly.windowMs
+    );
+    if (!rate.allowed) return rateLimitExceededResponse(rate);
+
     const body = await request.json();
-    const { type } = body as { type: "lesson" | "study" };
+    const parsed = progressUpdateSchema.safeParse(body);
+    if (!parsed.success) return handleZodError(parsed.error);
+
+    const { type } = parsed.data;
 
     await connectDB();
 

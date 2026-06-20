@@ -4,11 +4,22 @@ import { User } from "@/models/User";
 import { signToken } from "@/lib/auth/jwt";
 import { COOKIE_NAME } from "@/lib/auth/session";
 import { registerSchema } from "@/lib/validations/auth";
+import { getClientIp } from "@/lib/security/client-ip";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
 import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const rate = await checkRateLimit(
+      `auth:register:${ip}`,
+      RATE_LIMITS.register.limit,
+      RATE_LIMITS.register.windowMs
+    );
+    if (!rate.allowed) return rateLimitExceededResponse(rate);
+
     const body = await request.json();
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) return handleZodError(parsed.error);

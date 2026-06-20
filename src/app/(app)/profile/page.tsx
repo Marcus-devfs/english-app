@@ -182,6 +182,23 @@ export default function ProfilePage() {
     router.push("/");
   }
 
+  async function handleDeleteAccount() {
+    const confirmed = window.confirm(
+      language === "pt"
+        ? "Excluir sua conta permanentemente? Todos os dados serão removidos."
+        : "Permanently delete your account? All data will be removed."
+    );
+    if (!confirmed) return;
+
+    const res = await fetch("/api/account", { method: "DELETE" });
+    const data = await res.json();
+    if (data.success) {
+      router.push("/welcome");
+    } else {
+      alert(data.error ?? "Erro ao excluir conta");
+    }
+  }
+
   if (loading) {
     return (
       <AppShell showHeader={false}>
@@ -467,6 +484,25 @@ export default function ProfilePage() {
           <LogOut className="h-4 w-4" />
           {t("profile.logout")}
         </button>
+
+        <section className="border-t border-slate-100 pt-4 space-y-2">
+          <p className="text-xs text-slate-500 text-center">
+            <Link href="/privacidade" className="text-norte-blue hover:underline">
+              Privacidade
+            </Link>
+            {" · "}
+            <Link href="/termos" className="text-norte-blue hover:underline">
+              Termos
+            </Link>
+          </p>
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            className="w-full py-2 text-xs text-slate-400 hover:text-red-500 transition-colors"
+          >
+            {language === "pt" ? "Excluir minha conta" : "Delete my account"}
+          </button>
+        </section>
       </div>
 
       <NotificationPermissionHelp

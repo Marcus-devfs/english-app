@@ -419,18 +419,32 @@ Autenticado (cookie ingles_session)
 
 ---
 
-## 7. Checklist Vercel (produção)
+## 9. Checklist pré-lançamento
 
-Confirme no dashboard **Settings → Environment Variables**:
+### Implementado no código ✅
 
 ```
-[ ] JWT_SECRET          → openssl rand -base64 32  (FORTE, único)
-[ ] MONGODB_URI         → usuário/senha Atlas com IP allowlist
-[ ] CRON_SECRET         → openssl rand -base64 32
-[ ] VAPID_PRIVATE_KEY   → nunca expor
-[ ] VAPID_SUBJECT       → mailto:seu@email.com
-[ ] AI_API_KEY          → com spending limit na OpenAI
-[ ] NEXT_PUBLIC_APP_URL → https://seu-dominio.vercel.app
+[x] JWT_SECRET fail-fast em produção (sem fallback fraco)
+[x] ?force=1 desabilitado em produção (push cron)
+[x] Rate limit: login (5/15min IP), register (3/h IP)
+[x] Rate limit: chat (20/dia usuário), progress (10/h usuário)
+[x] /api/progress validado com Zod
+[x] Middleware: APIs sem sessão → 401 JSON
+[x] Security headers (X-Frame-Options, nosniff, Referrer-Policy)
+[x] /privacidade + /termos + checkbox no cadastro
+[x] DELETE /api/account (LGPD — exclusão de conta)
+[x] /api/assessment/questions exige autenticação
+```
+
+### Você ainda precisa configurar manualmente ⚠️
+
+```
+[ ] JWT_SECRET forte na Vercel (openssl rand -base64 32)
+[ ] CRON_SECRET forte; URL do cron SEM ?force=1
+[ ] MongoDB com senha + allowlist de IP
+[ ] AI_API_KEY com spending limit na OpenAI
+[ ] Confirmar .env.local nunca commitado no GitHub
+[ ] Deploy desta versão na Vercel
 ```
 
 **MongoDB Atlas:**
@@ -495,7 +509,7 @@ flowchart LR
 
 | Data | Versão | Notas |
 |------|--------|-------|
-| 2026-06-20 | 1.0 | Auditoria inicial do codebase |
+| 2026-06-20 | 1.1 | Hardening pré-lançamento implementado (rate limit, LGPD, headers) |
 
 ---
 

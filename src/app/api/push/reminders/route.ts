@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { isPushConfigured } from "@/lib/push/web-push";
 import { processReminders } from "@/lib/push/process-reminders";
+import { isProduction } from "@/lib/security/env";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
@@ -16,7 +17,8 @@ export async function POST(request: NextRequest) {
       return apiError("Push not configured", 503);
     }
 
-    const force = request.nextUrl.searchParams.get("force") === "1";
+    const forceRequested = request.nextUrl.searchParams.get("force") === "1";
+    const force = forceRequested && !isProduction();
     const result = await processReminders(force);
 
     return apiSuccess(result);
