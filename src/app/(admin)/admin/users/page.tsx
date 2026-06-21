@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { ProBadge } from "@/components/subscription/pro-badge";
 
 interface AdminUser {
   id: string;
@@ -141,9 +142,7 @@ export default function AdminUsersPage() {
                           {u.role === "admin" && (
                             <Badge variant="info">Admin</Badge>
                           )}
-                          {u.subscription?.isPro && (
-                            <Badge className="bg-amber-100 text-amber-700">PRO</Badge>
-                          )}
+                          {u.subscription?.isPro && <ProBadge size="xs" />}
                         </div>
                       </Link>
                     </td>

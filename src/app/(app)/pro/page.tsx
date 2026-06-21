@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/ui/loading";
 import { PRO_FEATURES } from "@/types/subscription";
+import { ProBadge, ProBlackCard } from "@/components/subscription/pro-badge";
 import { ArrowLeft, Check, Crown, Sparkles } from "lucide-react";
 
 interface SubscriptionData {
@@ -134,9 +134,7 @@ function ProPageContent() {
           <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-norte-blue/20" />
           <div className="flex items-center gap-2 mb-3">
             <Crown className="h-5 w-5 text-amber-400" />
-            <Badge className="bg-amber-400/20 text-amber-300 border-0">
-              PRO
-            </Badge>
+            <ProBadge size="md" className="bg-white text-norte-ink" />
           </div>
           <h1 className="text-2xl font-bold">Norte PRO</h1>
           <p className="text-slate-300 mt-2 text-sm">
@@ -174,19 +172,19 @@ function ProPageContent() {
         <div className="mt-8 space-y-3">
           {isPro ? (
             <>
-              <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                Você é membro PRO
-                {data?.subscription.isMock && (
-                  <Badge className="bg-violet-100 text-violet-700 ml-1">Mock</Badge>
-                )}
+              <ProBlackCard>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Sparkles className="h-4 w-4 text-slate-300" />
+                  <span className="text-sm font-medium">Você é membro PRO</span>
+                  <ProBadge size="sm" />
+                </div>
                 {data?.subscription.currentPeriodEnd && (
-                  <span className="text-emerald-600">
-                    · até{" "}
+                  <p className="text-xs text-slate-400 mt-2">
+                    Válido até{" "}
                     {new Date(data.subscription.currentPeriodEnd).toLocaleDateString("pt-BR")}
-                  </span>
+                  </p>
                 )}
-              </div>
+              </ProBlackCard>
               <Link href="/interview">
                 <Button variant="accent" className="w-full">
                   Iniciar entrevista

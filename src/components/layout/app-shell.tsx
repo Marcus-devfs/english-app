@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { Flame } from "lucide-react";
 import { TabBar, TAB_BAR_HEIGHT } from "@/components/layout/tab-bar";
 import { useLocale } from "@/lib/i18n/locale-provider";
+import { useSubscription } from "@/lib/hooks/use-subscription";
+import { ProBadge } from "@/components/subscription/pro-badge";
 import { cn } from "@/lib/utils/cn";
 
 interface AppShellProps {
@@ -23,6 +25,7 @@ export function AppShell({
 }: AppShellProps) {
   const pathname = usePathname();
   const { t } = useLocale();
+  const { isPro } = useSubscription();
 
   const pageTitles: Record<string, string> = {
     "/dashboard": t("nav.home"),
@@ -71,14 +74,23 @@ export function AppShell({
             )}
             <Link
               href="/profile"
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold transition-colors active:scale-95",
-                pathname === "/profile"
-                  ? "bg-norte-blue text-white"
-                  : "bg-norte-blue-light text-norte-blue hover:bg-norte-blue/10"
-              )}
+              className="flex flex-col items-center gap-0.5 shrink-0"
             >
-              {userName ? userName[0]?.toUpperCase() : "?"}
+              <span
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold transition-colors active:scale-95",
+                  pathname === "/profile"
+                    ? isPro
+                      ? "bg-norte-ink text-white ring-2 ring-norte-ink/20"
+                      : "bg-norte-blue text-white"
+                    : isPro
+                      ? "bg-norte-ink text-white"
+                      : "bg-norte-blue-light text-norte-blue hover:bg-norte-blue/10"
+                )}
+              >
+                {userName ? userName[0]?.toUpperCase() : "?"}
+              </span>
+              {isPro && <ProBadge size="xs" />}
             </Link>
           </div>
         </header>

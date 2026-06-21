@@ -13,8 +13,10 @@ import {
   StreakAlertCard,
 } from "@/components/engagement/engagement-cards";
 import { GOAL_LABELS, type UserProgress } from "@/types";
-import { MessageCircle, Zap, ChevronRight, Briefcase, Crown } from "lucide-react";
+import { MessageCircle, Zap, ChevronRight, Briefcase } from "lucide-react";
 import { PushPrompt } from "@/components/pwa/push-prompt";
+import { ProBadge, ProBlackCard } from "@/components/subscription/pro-badge";
+import { useSubscription } from "@/lib/hooks/use-subscription";
 
 interface DashboardData {
   user: {
@@ -36,6 +38,7 @@ function getGreeting() {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isPro } = useSubscription();
 
   useEffect(() => {
     async function load() {
@@ -70,17 +73,44 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 space-y-5">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-xl font-bold text-norte-ink">
-              {getGreeting()}, {firstName} 👋
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold text-norte-ink">
+                {getGreeting()}, {firstName} 👋
+              </h1>
+              {isPro && <ProBadge size="md" />}
+            </div>
             <p className="text-sm text-slate-500 mt-0.5">
               {GOAL_LABELS[data?.user.goal as keyof typeof GOAL_LABELS] ?? "Sua trilha"}
             </p>
           </div>
-          <div className="h-10 w-10 rounded-full bg-norte-blue flex items-center justify-center text-white font-bold text-sm shrink-0">
-            {firstName[0]?.toUpperCase()}
+          <div className="flex flex-col items-center gap-1 shrink-0">
+            <div
+              className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                isPro ? "bg-norte-ink text-white" : "bg-norte-blue text-white"
+              }`}
+            >
+              {firstName[0]?.toUpperCase()}
+            </div>
+            {isPro && <ProBadge size="xs" />}
           </div>
         </div>
+
+        {isPro && (
+          <ProBlackCard className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Membro Black
+              </p>
+              <p className="text-sm font-semibold mt-0.5">Entrevista IA desbloqueada</p>
+            </div>
+            <Link href="/interview">
+              <Button variant="accent" size="sm">
+                Iniciar
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </ProBlackCard>
+        )}
 
         <PushPrompt />
 
@@ -133,13 +163,15 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <Link href="/interview">
             <div className="rounded-2xl bg-gradient-to-br from-norte-ink to-slate-800 border border-slate-700 p-4 h-full active:scale-[0.98] transition-transform relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-amber-400/10" />
+              <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/5" />
               <div className="flex items-center gap-2 mb-2">
-                <Briefcase className="h-6 w-6 text-amber-400" />
-                <Crown className="h-3.5 w-3.5 text-amber-400/80" />
+                <Briefcase className="h-6 w-6 text-white" />
+                {isPro && <ProBadge size="xs" />}
               </div>
               <p className="font-semibold text-white text-sm">Entrevista IA</p>
-              <p className="text-xs text-slate-400">Exclusivo PRO</p>
+              <p className="text-xs text-slate-400">
+                {isPro ? "Disponível agora" : "Exclusivo PRO"}
+              </p>
             </div>
           </Link>
           <Link href="/chat">

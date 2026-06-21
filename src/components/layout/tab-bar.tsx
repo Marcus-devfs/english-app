@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { Home, Map, BookOpen, MessageCircle, User } from "lucide-react";
 import { useLocale } from "@/lib/i18n/locale-provider";
+import { useSubscription } from "@/lib/hooks/use-subscription";
+import { ProBadge } from "@/components/subscription/pro-badge";
 
 export const TAB_BAR_HEIGHT = "4.5rem";
 
@@ -19,6 +21,7 @@ const tabs = [
 export function TabBar() {
   const pathname = usePathname();
   const { t } = useLocale();
+  const { isPro } = useSubscription();
 
   return (
     <nav
@@ -51,6 +54,7 @@ export function TabBar() {
               >
                 <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.5 : 2} />
               </span>
+              {href === "/profile" && isPro && <ProBadge size="xs" />}
               <span className={cn("text-[10px] font-medium leading-none", active && "font-semibold")}>
                 {t(labelKey)}
               </span>

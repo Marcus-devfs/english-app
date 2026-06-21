@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { ProBadge } from "@/components/subscription/pro-badge";
 import { Loading } from "@/components/ui/loading";
 import { useVoiceRecorder } from "@/lib/hooks/use-voice-recorder";
 import {
@@ -185,7 +185,7 @@ function InterviewContent() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="font-semibold text-norte-ink truncate">Entrevista com Alex</h1>
-                <Badge className="shrink-0 bg-amber-100 text-amber-700">PRO</Badge>
+                <ProBadge size="sm" className="shrink-0" />
               </div>
               <p className="text-xs text-slate-500">
                 {sessionId

@@ -9,6 +9,7 @@ import { Loading } from "@/components/ui/loading";
 import { ArrowLeft, Crown } from "lucide-react";
 import { GOAL_LABELS, type LearningGoal } from "@/types";
 import { Button } from "@/components/ui/button";
+import { ProBadge } from "@/components/subscription/pro-badge";
 
 interface UserDetail {
   id: string;
@@ -201,9 +202,7 @@ export default function AdminUserDetailPage() {
               {user.onboardingCompleted ? "Onboarding completo" : "Em onboarding"}
             </Badge>
             {user.role === "admin" && <Badge variant="info">Admin</Badge>}
-            {user.subscription?.isPro && (
-              <Badge className="bg-amber-100 text-amber-700">PRO</Badge>
-            )}
+            {user.subscription?.isPro && <ProBadge size="sm" />}
             {user.diagnosedLevel && (
               <Badge variant="level">Nível {user.diagnosedLevel}</Badge>
             )}

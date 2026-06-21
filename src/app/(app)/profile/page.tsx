@@ -18,7 +18,8 @@ import {
   NotificationPermissionHelp,
   useNotificationPermissionWatch,
 } from "@/components/pwa/notification-permission-help";
-import { Bell, BellOff, LogOut, ChevronRight, Shield, Crown } from "lucide-react";
+import { Bell, BellOff, LogOut, ChevronRight, Shield } from "lucide-react";
+import { ProBadge, ProBlackCard } from "@/components/subscription/pro-badge";
 import { REMINDER_ANY_HOUR } from "@/lib/constants/push";
 import { cn } from "@/lib/utils/cn";
 
@@ -248,11 +249,24 @@ export default function ProfilePage() {
       <div className="flex-1 overflow-y-auto px-4 pt-6 pb-6 space-y-6">
         {/* Header perfil */}
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-norte-blue flex items-center justify-center text-white text-2xl font-bold shrink-0">
-            {firstName[0]?.toUpperCase()}
+          <div className="flex flex-col items-center gap-1 shrink-0">
+            <div
+              className={cn(
+                "h-16 w-16 rounded-2xl flex items-center justify-center text-2xl font-bold",
+                user?.subscription?.isPro
+                  ? "bg-norte-ink text-white ring-2 ring-norte-ink/20"
+                  : "bg-norte-blue text-white"
+              )}
+            >
+              {firstName[0]?.toUpperCase()}
+            </div>
+            {user?.subscription?.isPro && <ProBadge size="sm" />}
           </div>
           <div>
-            <h1 className="text-xl font-bold text-norte-ink">{t("profile.title")}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold text-norte-ink">{t("profile.title")}</h1>
+              {user?.subscription?.isPro && <ProBadge size="md" />}
+            </div>
             <p className="text-sm text-slate-500">{user?.email}</p>
             {user?.levelLabel && (
               <Badge variant="level" className="mt-1">{user.levelLabel}</Badge>
@@ -275,28 +289,46 @@ export default function ProfilePage() {
         </div>
 
         {/* Plano PRO */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
-            <Crown className="h-4 w-4 text-amber-500" />
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
             Plano
           </h2>
-          <Link href="/pro">
-            <div className="rounded-2xl bg-white border border-slate-100 p-4 flex items-center justify-between active:scale-[0.98] transition-transform">
-              <div>
-                <p className="font-semibold text-norte-ink">
-                  {user?.subscription?.isPro ? "Norte PRO" : "Plano gratuito"}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {user?.subscription?.isPro
-                    ? "Entrevista IA desbloqueada"
-                    : "Assine PRO por $2.99/mês"}
-                </p>
+          {user?.subscription?.isPro ? (
+            <ProBlackCard>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <ProBadge size="md" />
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400">
+                      Black Client
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-300">Entrevista IA desbloqueada</p>
+                  {user.subscription.currentPeriodEnd && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Válido até{" "}
+                      {new Date(user.subscription.currentPeriodEnd).toLocaleDateString("pt-BR")}
+                    </p>
+                  )}
+                </div>
+                <Link href="/pro">
+                  <ChevronRight className="h-5 w-5 text-slate-400" />
+                </Link>
               </div>
-              <ChevronRight className="h-5 w-5 text-slate-400" />
-            </div>
-          </Link>
+            </ProBlackCard>
+          ) : (
+            <Link href="/pro">
+              <div className="rounded-2xl bg-white border border-slate-100 p-4 flex items-center justify-between active:scale-[0.98] transition-transform">
+                <div>
+                  <p className="font-semibold text-norte-ink">Plano gratuito</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Assine PRO por $2.99/mês</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-400" />
+              </div>
+            </Link>
+          )}
           {user?.subscription?.isPro && (
-            <Link href="/interview">
+            <Link href="/interview" className="block pt-1">
               <Button variant="accent" size="sm" className="w-full">
                 Ir para entrevista
               </Button>
