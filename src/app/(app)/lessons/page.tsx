@@ -12,10 +12,15 @@ import { Input } from "@/components/ui/input";
 import type { DailyLesson } from "@/types";
 import {
   buildLessonSteps,
-  checkSpeechAttempt,
-  checkTranslation,
+  evaluateSpeech,
+  evaluateTranslation,
+  evaluateWordPick,
+  getStepHint,
   type LessonStepType,
+  type StepCheckResult,
 } from "@/lib/lessons/build-steps";
+import { LessonStepHint } from "@/components/lessons/lesson-step-hint";
+import { LessonStepFeedback } from "@/components/lessons/lesson-step-feedback";
 import { useVoiceRecorder } from "@/lib/hooks/use-voice-recorder";
 import {
   ArrowLeft,
@@ -48,10 +53,11 @@ function LessonsContent() {
   const [autoCompleting, setAutoCompleting] = useState(false);
 
   const [translationInput, setTranslationInput] = useState("");
-  const [translationError, setTranslationError] = useState("");
+  const [translationFeedback, setTranslationFeedback] = useState<StepCheckResult | null>(null);
   const [wordPicks, setWordPicks] = useState<Record<number, string>>({});
-  const [wordPickError, setWordPickError] = useState("");
-  const [speakError, setSpeakError] = useState("");
+  const [wordPickFeedback, setWordPickFeedback] = useState<StepCheckResult | null>(null);
+  const [speakFeedback, setSpeakFeedback] = useState<StepCheckResult | null>(null);
+  const [hintOpen, setHintOpen] = useState(false);
 
   const { isRecording, displayText, start, stop, reset: resetMic } = useVoiceRecorder("en-US");
 
@@ -76,6 +82,13 @@ function LessonsContent() {
   useEffect(() => {
     fetchLesson();
   }, [fetchLesson]);
+
+  useEffect(() => {
+    setHintOpen(false);
+    setTranslationFeedback(null);
+    setWordPickFeedback(null);
+    setSpeakFeedback(null);
+  }, [currentStep?.type]);
 
   const markStepDone = useCallback((type: LessonStepType) => {
     setCompletedSteps((prev) => new Set([...prev, type]));
@@ -126,12 +139,9 @@ function LessonsContent() {
 
   function handleTranslateSubmit() {
     if (!lesson) return;
-    if (checkTranslation(translationInput, lesson.translation)) {
-      setTranslationError("");
-      markStepDone("translate");
-    } else {
-      setTranslationError("Quase! Tente de novo — a tradução não precisa ser idêntica, mas deve captar o sentido.");
-    }
+    const result = evaluateTranslation(translationInput, lesson.translation);
+    setTranslationFeedback(result);
+    if (result.passed) markStepDone("translate");
   }
 
   function handleWordPickSubmit() {
@@ -140,26 +150,19 @@ function LessonsContent() {
       markStepDone("word_pick");
       return;
     }
-    const allCorrect = step.blanks.every(
-      (b) => wordPicks[b.index]?.toLowerCase() === b.correct.toLowerCase()
-    );
-    if (allCorrect) {
-      setWordPickError("");
-      markStepDone("word_pick");
-    } else {
-      setWordPickError("Algumas palavras estão incorretas. Tente novamente.");
-    }
+    const result = evaluateWordPick(wordPicks, step.blanks);
+    setWordPickFeedback(result);
+    if (result.passed) markStepDone("word_pick");
   }
 
   function handleSpeakSubmit() {
     if (!lesson) return;
     const text = isRecording ? stop() : displayText;
-    if (checkSpeechAttempt(text, lesson.phrase)) {
-      setSpeakError("");
+    const result = evaluateSpeech(text, lesson.phrase);
+    setSpeakFeedback(result);
+    if (result.passed) {
       markStepDone("speak");
       resetMic();
-    } else {
-      setSpeakError("Tente falar a frase completa em inglês. Toque no microfone e repita.");
     }
   }
 
@@ -175,6 +178,10 @@ function LessonsContent() {
 
   const wordPickStep = steps.find((s) => s.type === "word_pick");
   const phraseWords = lesson.phrase.split(/\s+/);
+  const stepHint =
+    lesson && currentStep
+      ? getStepHint(lesson, currentStep.type, currentStep)
+      : null;
 
   return (
     <AppShell>
@@ -198,7 +205,7 @@ function LessonsContent() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{lesson.title}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Complete todas as atividades para concluir automaticamente
+            Complete as atividades — tradução e fala aceitam acerto parcial
           </p>
         </div>
 
@@ -269,6 +276,13 @@ function LessonsContent() {
                 <CardContent className="pt-6 space-y-4">
                   <CardTitle className="text-base">{currentStep.title}</CardTitle>
                   <p className="text-sm text-slate-600">{currentStep.description}</p>
+                  {stepHint && (
+                    <LessonStepHint
+                      hint={stepHint}
+                      open={hintOpen}
+                      onToggle={() => setHintOpen((v) => !v)}
+                    />
+                  )}
                   <Button onClick={handleListen} className="w-full">
                     <Volume2 className="h-4 w-4" />
                     Ouvir frase
@@ -303,16 +317,26 @@ function LessonsContent() {
                 <CardContent className="pt-6 space-y-4">
                   <CardTitle className="text-base">{currentStep.title}</CardTitle>
                   <p className="text-sm text-slate-600">{currentStep.description}</p>
+                  {stepHint && (
+                    <LessonStepHint
+                      hint={stepHint}
+                      open={hintOpen}
+                      onToggle={() => setHintOpen((v) => !v)}
+                    />
+                  )}
                   <p className="text-sm font-medium text-norte-ink italic">
                     &ldquo;{lesson.phrase}&rdquo;
                   </p>
                   <Input
                     value={translationInput}
-                    onChange={(e) => setTranslationInput(e.target.value)}
+                    onChange={(e) => {
+                      setTranslationInput(e.target.value);
+                      setTranslationFeedback(null);
+                    }}
                     placeholder="Digite a tradução em português..."
                   />
-                  {translationError && (
-                    <p className="text-sm text-amber-600">{translationError}</p>
+                  {translationFeedback && (
+                    <LessonStepFeedback result={translationFeedback} />
                   )}
                   <Button
                     onClick={handleTranslateSubmit}
@@ -331,6 +355,13 @@ function LessonsContent() {
                 <CardContent className="pt-6 space-y-4">
                   <CardTitle className="text-base">{currentStep.title}</CardTitle>
                   <p className="text-sm text-slate-600">{currentStep.description}</p>
+                  {stepHint && (
+                    <LessonStepHint
+                      hint={stepHint}
+                      open={hintOpen}
+                      onToggle={() => setHintOpen((v) => !v)}
+                    />
+                  )}
                   <div className="flex flex-wrap gap-1.5 text-base leading-relaxed">
                     {phraseWords.map((word, i) => {
                       const blank = wordPickStep.blanks?.find((b) => b.index === i);
@@ -339,9 +370,10 @@ function LessonsContent() {
                           <select
                             key={i}
                             value={wordPicks[i] ?? ""}
-                            onChange={(e) =>
-                              setWordPicks((p) => ({ ...p, [i]: e.target.value }))
-                            }
+                            onChange={(e) => {
+                              setWordPicks((p) => ({ ...p, [i]: e.target.value }));
+                              setWordPickFeedback(null);
+                            }}
                             className="px-2 py-1 rounded-lg border border-norte-blue/30 bg-norte-blue-light text-norte-blue font-medium text-sm"
                           >
                             <option value="">___</option>
@@ -360,9 +392,7 @@ function LessonsContent() {
                       );
                     })}
                   </div>
-                  {wordPickError && (
-                    <p className="text-sm text-amber-600">{wordPickError}</p>
-                  )}
+                  {wordPickFeedback && <LessonStepFeedback result={wordPickFeedback} />}
                   <Button
                     onClick={handleWordPickSubmit}
                     disabled={
@@ -382,6 +412,13 @@ function LessonsContent() {
                 <CardContent className="pt-6 space-y-4">
                   <CardTitle className="text-base">{currentStep.title}</CardTitle>
                   <p className="text-sm text-slate-600">{currentStep.description}</p>
+                  {stepHint && (
+                    <LessonStepHint
+                      hint={stepHint}
+                      open={hintOpen}
+                      onToggle={() => setHintOpen((v) => !v)}
+                    />
+                  )}
                   <p className="text-sm font-medium italic text-norte-ink">
                     &ldquo;{lesson.phrase}&rdquo;
                   </p>
@@ -395,7 +432,7 @@ function LessonsContent() {
                       {displayText}
                     </p>
                   )}
-                  {speakError && <p className="text-sm text-amber-600">{speakError}</p>}
+                  {speakFeedback && <LessonStepFeedback result={speakFeedback} />}
                   <div className="flex gap-2">
                     <Button
                       type="button"
