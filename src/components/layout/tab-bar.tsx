@@ -54,7 +54,6 @@ export function TabBar() {
               >
                 <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.5 : 2} />
               </span>
-              {href === "/profile" && isPro && <ProBadge size="xs" />}
               <span className={cn("text-[10px] font-medium leading-none", active && "font-semibold")}>
                 {t(labelKey)}
               </span>

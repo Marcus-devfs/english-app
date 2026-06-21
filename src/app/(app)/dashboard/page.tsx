@@ -83,16 +83,6 @@ export default function DashboardPage() {
               {GOAL_LABELS[data?.user.goal as keyof typeof GOAL_LABELS] ?? "Sua trilha"}
             </p>
           </div>
-          <div className="flex flex-col items-center gap-1 shrink-0">
-            <div
-              className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                isPro ? "bg-norte-ink text-white" : "bg-norte-blue text-white"
-              }`}
-            >
-              {firstName[0]?.toUpperCase()}
-            </div>
-            {isPro && <ProBadge size="xs" />}
-          </div>
         </div>
 
         {isPro && (

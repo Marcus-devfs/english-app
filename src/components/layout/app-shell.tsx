@@ -90,7 +90,6 @@ export function AppShell({
               >
                 {userName ? userName[0]?.toUpperCase() : "?"}
               </span>
-              {isPro && <ProBadge size="xs" />}
             </Link>
           </div>
         </header>

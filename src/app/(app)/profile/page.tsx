@@ -260,7 +260,6 @@ export default function ProfilePage() {
             >
               {firstName[0]?.toUpperCase()}
             </div>
-            {user?.subscription?.isPro && <ProBadge size="sm" />}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
