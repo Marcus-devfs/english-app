@@ -18,7 +18,7 @@ import {
   NotificationPermissionHelp,
   useNotificationPermissionWatch,
 } from "@/components/pwa/notification-permission-help";
-import { Bell, BellOff, LogOut, ChevronRight, Shield } from "lucide-react";
+import { Bell, BellOff, LogOut, ChevronRight, Shield, Crown } from "lucide-react";
 import { REMINDER_ANY_HOUR } from "@/lib/constants/push";
 import { cn } from "@/lib/utils/cn";
 
@@ -38,6 +38,7 @@ interface ProfileUser {
     reminderMinute: number;
   };
   hasPushSubscription: boolean;
+  subscription?: { isPro: boolean; plan: string; currentPeriodEnd?: string };
 }
 
 interface NotificationLogItem {
@@ -272,6 +273,36 @@ export default function ProfilePage() {
             </div>
           ))}
         </div>
+
+        {/* Plano PRO */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+            <Crown className="h-4 w-4 text-amber-500" />
+            Plano
+          </h2>
+          <Link href="/pro">
+            <div className="rounded-2xl bg-white border border-slate-100 p-4 flex items-center justify-between active:scale-[0.98] transition-transform">
+              <div>
+                <p className="font-semibold text-norte-ink">
+                  {user?.subscription?.isPro ? "Norte PRO" : "Plano gratuito"}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {user?.subscription?.isPro
+                    ? "Entrevista IA desbloqueada"
+                    : "Assine PRO por $2.99/mês"}
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400" />
+            </div>
+          </Link>
+          {user?.subscription?.isPro && (
+            <Link href="/interview">
+              <Button variant="accent" size="sm" className="w-full">
+                Ir para entrevista
+              </Button>
+            </Link>
+          )}
+        </section>
 
         {/* Conta */}
         <section className="space-y-3">

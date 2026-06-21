@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils/cn";
 
 interface TrailMeta {
   index: number;
+  lessonId?: string;
   lessonTitle: string;
   isReview: boolean;
   isCurrent: boolean;
@@ -96,6 +97,23 @@ function LessonsContent() {
 
   const completeLesson = useCallback(async () => {
     if (trail?.isReview) {
+      if (trail.lessonId && lesson) {
+        await fetch("/api/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "lesson",
+            lessonId: trail.lessonId,
+            trailIndex: trail.index,
+            title: trail.lessonTitle,
+            goal: lesson.goal,
+            level: lesson.level,
+            score: progressPct,
+            stepsCompleted: Array.from(completedSteps),
+            isReview: true,
+          }),
+        });
+      }
       setFinished(true);
       return;
     }
@@ -103,11 +121,21 @@ function LessonsContent() {
     await fetch("/api/progress", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "lesson" }),
+      body: JSON.stringify({
+        type: "lesson",
+        lessonId: trail?.lessonId ?? lesson?.id,
+        trailIndex: trail?.index,
+        title: trail?.lessonTitle ?? lesson?.title,
+        goal: lesson?.goal,
+        level: lesson?.level,
+        score: progressPct,
+        stepsCompleted: Array.from(completedSteps),
+        isReview: false,
+      }),
     });
     setFinished(true);
     setAutoCompleting(false);
-  }, [trail?.isReview]);
+  }, [trail, lesson, progressPct, completedSteps]);
 
   useEffect(() => {
     if (

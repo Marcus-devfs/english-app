@@ -1,11 +1,13 @@
 import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
+import { LessonCompletion } from "@/models/LessonCompletion";
 import { getSession } from "@/lib/auth/session";
 import { progressUpdateSchema } from "@/lib/validations/progress";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
 import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
 import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
+import type { LearningGoal, CEFRLevel } from "@/types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,9 +25,81 @@ export async function POST(request: NextRequest) {
     const parsed = progressUpdateSchema.safeParse(body);
     if (!parsed.success) return handleZodError(parsed.error);
 
-    const { type } = parsed.data;
+    const { type, lessonId, trailIndex, title, goal, level, score, stepsCompleted, isReview } =
+      parsed.data;
 
     await connectDB();
+
+    const user = await User.findById(session.userId);
+    if (!user) return apiError("Usuário não encontrado", 404);
+
+    if (type === "lesson" && lessonId && !isReview) {
+      const existing = await LessonCompletion.findOne({
+        userId: session.userId,
+        lessonId,
+      });
+
+      if (existing) {
+        return apiSuccess({
+          progress: user.progress,
+          alreadyCompleted: true,
+        });
+      }
+
+      await LessonCompletion.create({
+        userId: session.userId,
+        lessonId,
+        trailIndex: trailIndex ?? user.progress.lessonsCompleted,
+        goal: (goal ?? user.goal ?? "conversation") as LearningGoal,
+        title: title ?? lessonId,
+        level: (level ?? user.diagnosedLevel ?? "A1") as CEFRLevel,
+        score,
+        stepsCompleted: stepsCompleted ?? [],
+        xpEarned: 20,
+        isReview: false,
+      });
+
+      const updates: Record<string, unknown> = {
+        $inc: {
+          "progress.xp": 20,
+          "progress.totalStudyMinutes": 5,
+          "progress.lessonsCompleted": 1,
+          "progress.vocabularyScore": 2,
+        },
+      };
+
+      const updatedUser = await User.findByIdAndUpdate(session.userId, updates, { new: true });
+      if (!updatedUser) return apiError("Usuário não encontrado", 404);
+
+      await updateStreak(session.userId, updatedUser);
+
+      const freshUser = await User.findById(session.userId);
+      return apiSuccess({ progress: freshUser?.progress ?? updatedUser.progress });
+    }
+
+    if (type === "lesson" && isReview && lessonId) {
+      await LessonCompletion.findOneAndUpdate(
+        { userId: session.userId, lessonId },
+        {
+          $setOnInsert: {
+            userId: session.userId,
+            lessonId,
+            trailIndex: trailIndex ?? 0,
+            goal: (goal ?? user.goal ?? "conversation") as LearningGoal,
+            title: title ?? lessonId,
+            level: (level ?? user.diagnosedLevel ?? "A1") as CEFRLevel,
+            score,
+            stepsCompleted: stepsCompleted ?? [],
+            xpEarned: 0,
+            isReview: true,
+            completedAt: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+
+      return apiSuccess({ progress: user.progress, reviewRecorded: true });
+    }
 
     const updates: Record<string, unknown> = {
       $inc: {
@@ -39,31 +113,32 @@ export async function POST(request: NextRequest) {
       (updates.$inc as Record<string, number>)["progress.vocabularyScore"] = 2;
     }
 
-    const user = await User.findByIdAndUpdate(session.userId, updates, { new: true });
-    if (!user) return apiError("Usuário não encontrado", 404);
+    const updatedUser = await User.findByIdAndUpdate(session.userId, updates, { new: true });
+    if (!updatedUser) return apiError("Usuário não encontrado", 404);
 
-    const today = new Date().toISOString().split("T")[0];
-    if (user.progress.lastStudyDate !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
+    await updateStreak(session.userId, updatedUser);
 
-      const newStreak =
-        user.progress.lastStudyDate === yesterdayStr
-          ? user.progress.streakDays + 1
-          : 1;
-
-      await User.findByIdAndUpdate(session.userId, {
-        "progress.streakDays": newStreak,
-        "progress.lastStudyDate": today,
-      });
-
-      user.progress.streakDays = newStreak;
-    }
-
-    return apiSuccess({ progress: user.progress });
+    const freshUser = await User.findById(session.userId);
+    return apiSuccess({ progress: freshUser?.progress ?? updatedUser.progress });
   } catch (error) {
     return handleApiError(error);
+  }
+}
+
+async function updateStreak(userId: string, user: InstanceType<typeof User>) {
+  const today = new Date().toISOString().split("T")[0];
+  if (user.progress.lastStudyDate !== today) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    const newStreak =
+      user.progress.lastStudyDate === yesterdayStr ? user.progress.streakDays + 1 : 1;
+
+    await User.findByIdAndUpdate(userId, {
+      "progress.streakDays": newStreak,
+      "progress.lastStudyDate": today,
+    });
   }
 }
 

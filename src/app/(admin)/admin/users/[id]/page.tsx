@@ -6,8 +6,9 @@ import { useParams } from "next/navigation";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/ui/loading";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Crown } from "lucide-react";
 import { GOAL_LABELS, type LearningGoal } from "@/types";
+import { Button } from "@/components/ui/button";
 
 interface UserDetail {
   id: string;
@@ -47,6 +48,18 @@ interface UserDetail {
     lastType?: string;
   };
   pushDevices: number;
+  subscription?: {
+    isPro: boolean;
+    isMock?: boolean;
+    plan: string;
+    status: string;
+    source?: string;
+    currentPeriodEnd?: string;
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    mockGrantedAt?: string;
+    mockMonths?: number;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -95,18 +108,65 @@ export default function AdminUserDetailPage() {
   const [user, setUser] = useState<UserDetail | null>(null);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subLoading, setSubLoading] = useState(false);
+  const [mockMonths, setMockMonths] = useState(1);
+  const [subMessage, setSubMessage] = useState("");
+
+  async function loadUser() {
+    const res = await fetch(`/api/admin/users/${id}`);
+    const data = await res.json();
+    if (data.success) {
+      setUser(data.data.user);
+      setActivity(data.data.activity);
+    }
+    setLoading(false);
+  }
 
   useEffect(() => {
-    fetch(`/api/admin/users/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) {
-          setUser(data.data.user);
-          setActivity(data.data.activity);
-        }
-        setLoading(false);
-      });
+    loadUser();
   }, [id]);
+
+  async function grantMockPro() {
+    setSubLoading(true);
+    setSubMessage("");
+    try {
+      const res = await fetch(`/api/admin/users/${id}/subscription`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "pro", months: mockMonths }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubMessage(data.data.message ?? "PRO mock concedido.");
+        await loadUser();
+      } else {
+        setSubMessage(data.error ?? "Erro ao conceder PRO.");
+      }
+    } finally {
+      setSubLoading(false);
+    }
+  }
+
+  async function revokeMockPro() {
+    setSubLoading(true);
+    setSubMessage("");
+    try {
+      const res = await fetch(`/api/admin/users/${id}/subscription`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "free" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubMessage(data.data.message ?? "Assinatura revogada.");
+        await loadUser();
+      } else {
+        setSubMessage(data.error ?? "Erro ao revogar.");
+      }
+    } finally {
+      setSubLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -141,6 +201,9 @@ export default function AdminUserDetailPage() {
               {user.onboardingCompleted ? "Onboarding completo" : "Em onboarding"}
             </Badge>
             {user.role === "admin" && <Badge variant="info">Admin</Badge>}
+            {user.subscription?.isPro && (
+              <Badge className="bg-amber-100 text-amber-700">PRO</Badge>
+            )}
             {user.diagnosedLevel && (
               <Badge variant="level">Nível {user.diagnosedLevel}</Badge>
             )}
@@ -171,6 +234,114 @@ export default function AdminUserDetailPage() {
               label="Nível atual → meta"
               value={`${user.progress?.currentLevel ?? "—"} → ${user.progress?.targetLevel ?? "—"}`}
             />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <CardTitle className="mb-1 flex items-center gap-2">
+              <Crown className="h-4 w-4 text-amber-500" />
+              Assinatura mock
+            </CardTitle>
+            <p className="text-xs text-slate-500 mb-4">
+              Pagamentos reais desativados. Conceda PRO com dados simulados.
+            </p>
+            <InfoRow
+              label="Origem"
+              value={
+                user.subscription?.source === "stripe" ? (
+                  <Badge variant="info">Stripe</Badge>
+                ) : (
+                  <Badge className="bg-violet-100 text-violet-700">Mock</Badge>
+                )
+              }
+            />
+            <InfoRow label="Plano" value={user.subscription?.plan ?? "free"} />
+            <InfoRow label="Status" value={user.subscription?.status ?? "inactive"} />
+            <InfoRow
+              label="Válido até"
+              value={
+                user.subscription?.currentPeriodEnd
+                  ? formatDateTime(user.subscription.currentPeriodEnd)
+                  : "—"
+              }
+            />
+            {user.subscription?.isPro && user.subscription.source !== "stripe" && (
+              <>
+                <InfoRow
+                  label="Customer ID"
+                  value={
+                    <code className="text-xs">{user.subscription.stripeCustomerId ?? "—"}</code>
+                  }
+                />
+                <InfoRow
+                  label="Subscription ID"
+                  value={
+                    <code className="text-xs break-all">
+                      {user.subscription.stripeSubscriptionId ?? "—"}
+                    </code>
+                  }
+                />
+                <InfoRow
+                  label="Concedido em"
+                  value={
+                    user.subscription.mockGrantedAt
+                      ? formatDateTime(user.subscription.mockGrantedAt)
+                      : "—"
+                  }
+                />
+                <InfoRow
+                  label="Duração"
+                  value={
+                    user.subscription.mockMonths
+                      ? `${user.subscription.mockMonths} mês(es)`
+                      : "—"
+                  }
+                />
+              </>
+            )}
+            {!user.subscription?.isPro && (
+              <div className="mt-4 space-y-3">
+                <label className="block text-sm text-slate-600">
+                  Duração do PRO mock
+                  <select
+                    value={mockMonths}
+                    onChange={(e) => setMockMonths(Number(e.target.value))}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    <option value={1}>1 mês</option>
+                    <option value={3}>3 meses</option>
+                    <option value={6}>6 meses</option>
+                    <option value={12}>12 meses</option>
+                  </select>
+                </label>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="w-full"
+                  disabled={subLoading}
+                  onClick={grantMockPro}
+                >
+                  Conceder PRO mock
+                </Button>
+              </div>
+            )}
+            {user.subscription?.isPro && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="w-full mt-4"
+                disabled={subLoading}
+                onClick={revokeMockPro}
+              >
+                Revogar PRO
+              </Button>
+            )}
+            {subMessage && (
+              <p className="text-xs text-slate-600 mt-3 rounded-lg bg-slate-50 px-3 py-2">
+                {subMessage}
+              </p>
+            )}
           </CardContent>
         </Card>
 

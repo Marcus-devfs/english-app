@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
 import { getSession } from "@/lib/auth/session";
 import { isAdminUser, syncAdminRole } from "@/lib/auth/admin";
+import { serializeSubscription } from "@/lib/subscription";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
 
 export async function GET() {
@@ -26,6 +27,7 @@ export async function GET() {
         onboardingCompleted: user.onboardingCompleted,
         progress: user.progress,
         preferences: user.preferences,
+        subscription: serializeSubscription(user.subscription),
         isAdmin: isAdminUser(user),
       },
     });

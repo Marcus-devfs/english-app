@@ -5,6 +5,7 @@ import { ChatMessage } from "@/models/ChatMessage";
 import { Assessment } from "@/models/Assessment";
 import { requireAdmin } from "@/lib/auth/admin";
 import { DEFAULT_PREFERENCES } from "@/lib/i18n/translations";
+import { serializeSubscription } from "@/lib/subscription";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
 
 export async function GET(
@@ -55,6 +56,7 @@ export async function GET(
           endpoint: s.endpoint.slice(0, 60) + "...",
           createdAt: s.createdAt,
         })),
+        subscription: serializeSubscription(user.subscription),
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },

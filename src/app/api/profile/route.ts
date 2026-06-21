@@ -11,6 +11,7 @@ import {
   handleZodError,
   handleApiError,
 } from "@/lib/api/response";
+import { serializeSubscription } from "@/lib/subscription";
 
 function serializeUser(user: InstanceType<typeof User>) {
   return {
@@ -30,6 +31,7 @@ function serializeUser(user: InstanceType<typeof User>) {
       ? LEVEL_LABELS[user.diagnosedLevel as CEFRLevel]
       : undefined,
     hasPushSubscription: (user.pushSubscriptions?.length ?? 0) > 0,
+    subscription: serializeSubscription(user.subscription),
   };
 }
 

@@ -3,6 +3,7 @@ import { User } from "@/models/User";
 import { requireAdmin } from "@/lib/auth/admin";
 import { adminPaginationSchema } from "@/lib/validations/admin";
 import { apiSuccess, handleZodError, handleApiError } from "@/lib/api/response";
+import { serializeSubscription } from "@/lib/subscription";
 
 export async function GET(request: Request) {
   try {
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
         .skip(skip)
         .limit(limit)
         .select(
-          "name email role goal diagnosedLevel onboardingCompleted progress preferences pushSubscriptions createdAt updatedAt"
+          "name email role goal diagnosedLevel onboardingCompleted progress preferences pushSubscriptions subscription createdAt updatedAt"
         )
         .lean(),
       User.countDocuments(filter),
@@ -59,6 +60,7 @@ export async function GET(request: Request) {
           timezone: u.preferences?.timezone,
         },
         pushDevices: u.pushSubscriptions?.length ?? 0,
+        subscription: serializeSubscription(u.subscription),
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
       })),

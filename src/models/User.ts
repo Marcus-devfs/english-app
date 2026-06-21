@@ -3,6 +3,7 @@ import type { CEFRLevel, LearningGoal, UserProgress } from "@/types";
 import type { UserPreferences } from "@/lib/i18n/translations";
 import { DEFAULT_PREFERENCES } from "@/lib/i18n/translations";
 import type { NotificationState } from "@/lib/push/types";
+import type { UserSubscription } from "@/types/subscription";
 
 export interface PushSubscriptionData {
   endpoint: string;
@@ -25,6 +26,7 @@ export interface IUser extends Document {
   preferences: UserPreferences;
   pushSubscriptions: PushSubscriptionData[];
   notificationState?: NotificationState;
+  subscription: UserSubscription;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -85,6 +87,25 @@ const NotificationStateSchema = new Schema(
   { _id: false }
 );
 
+const SubscriptionSchema = new Schema(
+  {
+    plan: { type: String, enum: ["free", "pro"], default: "free" },
+    status: {
+      type: String,
+      enum: ["active", "canceled", "past_due", "inactive"],
+      default: "inactive",
+    },
+    source: { type: String, enum: ["mock", "stripe"], default: "mock" },
+    currentPeriodEnd: { type: Date },
+    stripeCustomerId: { type: String },
+    stripeSubscriptionId: { type: String },
+    cancelAtPeriodEnd: { type: Boolean, default: false },
+    mockGrantedAt: { type: Date },
+    mockMonths: { type: Number, min: 1, max: 24 },
+  },
+  { _id: false }
+);
+
 const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
@@ -105,6 +126,7 @@ const UserSchema = new Schema<IUser>(
     preferences: { type: PreferencesSchema, default: () => ({ ...DEFAULT_PREFERENCES }) },
     pushSubscriptions: { type: [PushSubscriptionSchema], default: [] },
     notificationState: { type: NotificationStateSchema },
+    subscription: { type: SubscriptionSchema, default: () => ({ plan: "free", status: "inactive" }) },
   },
   { timestamps: true }
 );

@@ -13,7 +13,7 @@ import {
   StreakAlertCard,
 } from "@/components/engagement/engagement-cards";
 import { GOAL_LABELS, type UserProgress } from "@/types";
-import { MessageCircle, Zap, ChevronRight } from "lucide-react";
+import { MessageCircle, Zap, ChevronRight, Briefcase, Crown } from "lucide-react";
 import { PushPrompt } from "@/components/pwa/push-prompt";
 
 interface DashboardData {
@@ -131,6 +131,17 @@ export default function DashboardPage() {
 
         {/* Ações rápidas */}
         <div className="grid grid-cols-2 gap-3">
+          <Link href="/interview">
+            <div className="rounded-2xl bg-gradient-to-br from-norte-ink to-slate-800 border border-slate-700 p-4 h-full active:scale-[0.98] transition-transform relative overflow-hidden">
+              <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-amber-400/10" />
+              <div className="flex items-center gap-2 mb-2">
+                <Briefcase className="h-6 w-6 text-amber-400" />
+                <Crown className="h-3.5 w-3.5 text-amber-400/80" />
+              </div>
+              <p className="font-semibold text-white text-sm">Entrevista IA</p>
+              <p className="text-xs text-slate-400">Exclusivo PRO</p>
+            </div>
+          </Link>
           <Link href="/chat">
             <div className="rounded-2xl bg-norte-blue-light border border-norte-blue/10 p-4 h-full active:scale-[0.98] transition-transform">
               <MessageCircle className="h-6 w-6 text-norte-blue mb-2" />
@@ -146,8 +157,6 @@ export default function DashboardPage() {
             </div>
           </Link>
         </div>
-
-        {/* Engajamento */}
         <PhraseOfDayCard />
         <WeeklyGoalCard daysCompleted={Math.min(5, progress?.streakDays ?? 0)} />
         <AchievementCard dialogues={Math.floor((progress?.speakingScore ?? 0) / 2)} />

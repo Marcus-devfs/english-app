@@ -27,6 +27,7 @@ interface AdminUser {
     timezone?: string;
   };
   pushDevices: number;
+  subscription?: { isPro: boolean; plan: string; source?: string };
   createdAt: string;
 }
 
@@ -139,6 +140,9 @@ export default function AdminUsersPage() {
                           </Badge>
                           {u.role === "admin" && (
                             <Badge variant="info">Admin</Badge>
+                          )}
+                          {u.subscription?.isPro && (
+                            <Badge className="bg-amber-100 text-amber-700">PRO</Badge>
                           )}
                         </div>
                       </Link>
