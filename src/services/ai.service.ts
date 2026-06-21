@@ -12,8 +12,37 @@ interface AIResponse {
   corrections?: { original: string; corrected: string; explanation: string }[];
 }
 
+export type AIMode = "live" | "mock";
+export type MockReason = "no_key" | "api_error";
+export type AIProvider = "openai" | "gemini";
+
+const GEMINI_BASE_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models";
+
+/** Server-only: GEMINI_API_KEY, AI_API_KEY, or GOOGLE_API_KEY (never NEXT_PUBLIC_) */
+export function getAIApiKey(): string {
+  return (
+    process.env.GEMINI_API_KEY?.trim() ||
+    process.env.AI_API_KEY?.trim() ||
+    process.env.GOOGLE_API_KEY?.trim() ||
+    ""
+  );
+}
+
 export function isAIConfigured(): boolean {
-  return Boolean(process.env.AI_API_KEY?.trim());
+  return Boolean(getAIApiKey());
+}
+
+export function resolveAIProvider(): AIProvider {
+  const explicit = process.env.AI_PROVIDER?.trim().toLowerCase();
+  if (explicit === "gemini" || explicit === "google") return "gemini";
+  if (explicit === "openai") return "openai";
+
+  const key = getAIApiKey();
+  if (key.startsWith("sk-")) return "openai";
+  if (key.startsWith("AIza") || key.startsWith("AQ.")) return "gemini";
+
+  return "openai";
 }
 
 const GOAL_FOCUS: Record<LearningGoal, string> = {
@@ -67,6 +96,23 @@ Rules:
 - Use scenarios and vocabulary appropriate to their goal
 - If they make mistakes, provide corrections in JSON format at the end like: CORRECTIONS:[{"original":"...","corrected":"...","explanation":"..."}]
 - Keep responses under 150 words unless explaining a complex topic`;
+
+function parseAIContent(content: string): AIResponse {
+  const correctionsMatch = content.match(/CORRECTIONS:(\[[\s\S]*?\])/);
+  let corrections: AIResponse["corrections"];
+  let cleanMessage = content;
+
+  if (correctionsMatch) {
+    try {
+      corrections = JSON.parse(correctionsMatch[1]);
+      cleanMessage = content.replace(/CORRECTIONS:\[[\s\S]*?\]/, "").trim();
+    } catch {
+      // ignore parse errors
+    }
+  }
+
+  return { message: cleanMessage, corrections };
+}
 
 function isPureGreeting(message: string): boolean {
   const trimmed = message.trim();
@@ -155,19 +201,15 @@ function mockResponse(
   return { message: responseMessage, corrections };
 }
 
-export async function getAIResponse(
-  message: string,
+async function callOpenAI(
+  apiKey: string,
   ctx: AIContext,
-  history: { role: string; content: string }[] = []
-): Promise<AIResponse & { mode: "live" | "mock" }> {
-  const apiKey = process.env.AI_API_KEY?.trim();
-
-  if (!apiKey) {
-    return { ...mockResponse(message, ctx, history), mode: "mock" };
-  }
-
-  try {
-    const res = await fetch(process.env.AI_API_URL ?? "https://api.openai.com/v1/chat/completions", {
+  message: string,
+  history: { role: string; content: string }[]
+): Promise<AIResponse> {
+  const res = await fetch(
+    process.env.AI_API_URL ?? "https://api.openai.com/v1/chat/completions",
+    {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -183,33 +225,86 @@ export async function getAIResponse(
         max_tokens: 500,
         temperature: 0.7,
       }),
-    });
-
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      console.error("[AI API Error]", res.status, errBody.slice(0, 200));
-      throw new Error(`AI API error: ${res.status}`);
     }
+  );
 
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content ?? "";
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    console.error("[OpenAI Error]", res.status, errBody.slice(0, 300));
+    throw new Error(`OpenAI API error: ${res.status}`);
+  }
 
-    const correctionsMatch = content.match(/CORRECTIONS:(\[[\s\S]*?\])/);
-    let corrections: AIResponse["corrections"];
-    let cleanMessage = content;
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content ?? "";
+  return parseAIContent(content);
+}
 
-    if (correctionsMatch) {
-      try {
-        corrections = JSON.parse(correctionsMatch[1]);
-        cleanMessage = content.replace(/CORRECTIONS:\[[\s\S]*?\]/, "").trim();
-      } catch {
-        // ignore parse errors
-      }
-    }
+async function callGemini(
+  apiKey: string,
+  ctx: AIContext,
+  message: string,
+  history: { role: string; content: string }[]
+): Promise<AIResponse> {
+  const model = process.env.AI_MODEL ?? "gemini-2.5-flash";
+  const url = `${GEMINI_BASE_URL}/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-    return { message: cleanMessage, corrections, mode: "live" };
+  const contents = [
+    ...history.slice(-10).map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    })),
+    { role: "user", parts: [{ text: message }] },
+  ];
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT(ctx) }] },
+      contents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 500,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    console.error("[Gemini Error]", res.status, errBody.slice(0, 300));
+    throw new Error(`Gemini API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  if (!content) {
+    throw new Error("Gemini API returned empty response");
+  }
+  return parseAIContent(content);
+}
+
+export async function getAIResponse(
+  message: string,
+  ctx: AIContext,
+  history: { role: string; content: string }[] = []
+): Promise<AIResponse & { mode: AIMode; mockReason?: MockReason }> {
+  const apiKey = getAIApiKey();
+
+  if (!apiKey) {
+    return { ...mockResponse(message, ctx, history), mode: "mock", mockReason: "no_key" };
+  }
+
+  const provider = resolveAIProvider();
+
+  try {
+    const result =
+      provider === "gemini"
+        ? await callGemini(apiKey, ctx, message, history)
+        : await callOpenAI(apiKey, ctx, message, history);
+
+    return { ...result, mode: "live" };
   } catch (error) {
-    console.error("[AI fallback to mock]", error);
-    return { ...mockResponse(message, ctx, history), mode: "mock" };
+    console.error(`[AI fallback to mock] provider=${provider}`, error);
+    return { ...mockResponse(message, ctx, history), mode: "mock", mockReason: "api_error" };
   }
 }

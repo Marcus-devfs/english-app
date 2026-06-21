@@ -14,6 +14,11 @@ import {
   DEFAULT_PREFERENCES,
   type UserPreferences,
 } from "@/lib/i18n/translations";
+import {
+  parseAppLanguage,
+  persistAppLanguage,
+  readStoredAppLanguage,
+} from "@/lib/i18n/language-persistence";
 
 interface LocaleContextValue {
   language: AppLanguage;
@@ -26,11 +31,24 @@ interface LocaleContextValue {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
-const STORAGE_KEY = "norte_language";
+export function LocaleProvider({
+  children,
+  initialLanguage = "pt",
+}: {
+  children: React.ReactNode;
+  initialLanguage?: AppLanguage;
+}) {
+  const [language, setLanguageState] = useState<AppLanguage>(initialLanguage);
+  const [preferences, setPreferencesState] = useState<UserPreferences>({
+    ...DEFAULT_PREFERENCES,
+    language: initialLanguage,
+  });
 
-export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<AppLanguage>("pt");
-  const [preferences, setPreferencesState] = useState<UserPreferences>(DEFAULT_PREFERENCES);
+  const applyLanguage = useCallback((lang: AppLanguage) => {
+    setLanguageState(lang);
+    persistAppLanguage(lang);
+    setPreferencesState((prev) => ({ ...prev, language: lang }));
+  }, []);
 
   const refreshFromServer = useCallback(async () => {
     try {
@@ -39,35 +57,39 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       if (data.success) {
         const prefs = data.data.user.preferences as UserPreferences;
         setPreferencesState(prefs);
-        setLanguageState(prefs.language);
-        localStorage.setItem(STORAGE_KEY, prefs.language);
+        applyLanguage(parseAppLanguage(prefs.language));
       }
     } catch {
       // ignore — user may not be logged in
     }
-  }, []);
+  }, [applyLanguage]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as AppLanguage | null;
-    if (stored === "pt" || stored === "en") {
-      setLanguageState(stored);
+    const stored = readStoredAppLanguage();
+    if (stored && stored !== initialLanguage) {
+      applyLanguage(stored);
+    } else if (!stored) {
+      persistAppLanguage(initialLanguage);
     }
     refreshFromServer();
-  }, [refreshFromServer]);
+  }, [applyLanguage, initialLanguage, refreshFromServer]);
 
-  const setLanguage = useCallback((lang: AppLanguage) => {
-    setLanguageState(lang);
-    localStorage.setItem(STORAGE_KEY, lang);
-    setPreferencesState((prev) => ({ ...prev, language: lang }));
-  }, []);
+  const setLanguage = useCallback(
+    (lang: AppLanguage) => {
+      applyLanguage(lang);
+    },
+    [applyLanguage]
+  );
 
-  const setPreferences = useCallback((partial: Partial<UserPreferences>) => {
-    setPreferencesState((prev) => ({ ...prev, ...partial }));
-    if (partial.language) {
-      setLanguageState(partial.language);
-      localStorage.setItem(STORAGE_KEY, partial.language);
-    }
-  }, []);
+  const setPreferences = useCallback(
+    (partial: Partial<UserPreferences>) => {
+      setPreferencesState((prev) => ({ ...prev, ...partial }));
+      if (partial.language) {
+        applyLanguage(parseAppLanguage(partial.language));
+      }
+    },
+    [applyLanguage]
+  );
 
   const t = useCallback(
     (key: TranslationKey) => translate(language, key),

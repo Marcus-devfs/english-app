@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
     return apiSuccess({
       message: assistantMsg,
       aiMode: aiResponse.mode,
+      mockReason: aiResponse.mockReason,
     });
   } catch (error) {
     return handleApiError(error);

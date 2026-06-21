@@ -22,7 +22,9 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [goal, setGoal] = useState<LearningGoal>("conversation");
-  const [aiConfigured, setAiConfigured] = useState(true);
+  const [aiStatus, setAiStatus] = useState<"configured" | "not_configured" | "live" | "api_error">(
+    "configured"
+  );
   const [chatError, setChatError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const { isRecording, displayText, start, stop } = useVoiceRecorder();
@@ -37,7 +39,7 @@ export default function ChatPage() {
         const userLevel = (data.data.user?.level ?? "B1") as CEFRLevel;
         const userName = data.data.user?.name ?? "there";
         setGoal(userGoal);
-        setAiConfigured(data.data.aiConfigured !== false);
+        setAiStatus(data.data.aiConfigured ? "configured" : "not_configured");
 
         if (data.data.messages.length > 0) {
           setMessages(data.data.messages);
@@ -84,7 +86,13 @@ export default function ChatPage() {
       const data = await res.json();
       if (data.success) {
         setMessages((prev) => [...prev, data.data.message]);
-        if (data.data.aiMode === "mock") setAiConfigured(false);
+        if (data.data.aiMode === "live") {
+          setAiStatus("live");
+        } else if (data.data.mockReason === "api_error") {
+          setAiStatus("api_error");
+        } else {
+          setAiStatus("not_configured");
+        }
       } else {
         setChatError(data.error ?? "Não foi possível enviar a mensagem.");
         setMessages((prev) => prev.slice(0, -1));
@@ -120,9 +128,19 @@ export default function ChatPage() {
           <Badge variant="success">Online</Badge>
         </div>
 
-        {!aiConfigured && (
+        {aiStatus === "not_configured" && (
           <div className="mx-4 mt-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-            Modo demonstração — configure <strong>AI_API_KEY</strong> no servidor para conversas reais com IA.
+            Modo demonstração — adicione <strong>GEMINI_API_KEY</strong> (Gemini) ou{" "}
+            <strong>AI_API_KEY=sk-...</strong> (OpenAI) no <strong>.env.local</strong> e reinicie (
+            <code className="text-[10px]">npm run dev</code>).
+          </div>
+        )}
+
+        {aiStatus === "api_error" && (
+          <div className="mx-4 mt-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+            A chave está configurada, mas a API falhou. Gemini:{" "}
+            <strong>GEMINI_API_KEY</strong> + <strong>AI_MODEL=gemini-2.5-flash</strong>.
+            OpenAI: <strong>AI_API_KEY=sk-...</strong>. Veja o terminal para detalhes.
           </div>
         )}
 
