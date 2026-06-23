@@ -4,7 +4,10 @@ import { User } from "@/models/User";
 import { getSession } from "@/lib/auth/session";
 import { quizSubmitSchema } from "@/lib/validations/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
+import { upsertVocabCards } from "@/lib/srs/vocab-cards";
+import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
 import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
+import type { LearningGoal } from "@/types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,6 +61,7 @@ export async function POST(request: NextRequest) {
         $set: {
           "cachedQuiz.completedAt": new Date(),
           "cachedQuiz.xpAwarded": true,
+          "cachedQuiz.lastScore": score,
         },
         $inc: {
           "progress.quizzesCompleted": 1,
@@ -67,8 +71,27 @@ export async function POST(request: NextRequest) {
       });
     } else {
       await User.findByIdAndUpdate(session.userId, {
-        $set: { "cachedQuiz.completedAt": new Date() },
+        $set: {
+          "cachedQuiz.completedAt": new Date(),
+          "cachedQuiz.lastScore": score,
+        },
       });
+    }
+
+    const wrongWords = results
+      .filter((r) => !r.isCorrect && r.correctAnswer)
+      .map((r) => ({
+        word: r.correctAnswer!.split(" ").slice(0, 3).join(" "),
+        meaning: r.explanation ?? r.correctAnswer!,
+      }));
+
+    if (wrongWords.length) {
+      await upsertVocabCards(
+        session.userId,
+        (user.goal ?? "conversation") as LearningGoal,
+        wrongWords,
+        "quiz"
+      );
     }
 
     return apiSuccess({

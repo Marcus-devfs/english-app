@@ -1,6 +1,6 @@
 import type { LearningGoal } from "@/types";
 
-export type PushNotificationType = "daily_invite" | "gentle_nudge" | "streak_risk";
+export type PushNotificationType = "daily_invite" | "gentle_nudge" | "streak_risk" | "comeback";
 
 export interface NotificationState {
   date: string;

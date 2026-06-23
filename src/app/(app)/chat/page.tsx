@@ -17,11 +17,19 @@ interface Message {
   corrections?: { original: string; corrected: string; explanation: string }[];
 }
 
+interface Scenario {
+  id: string;
+  title: string;
+  description: string;
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [goal, setGoal] = useState<LearningGoal>("conversation");
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [activeScenario, setActiveScenario] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<"configured" | "not_configured" | "live" | "api_error">(
     "configured"
   );
@@ -39,6 +47,7 @@ export default function ChatPage() {
         const userLevel = (data.data.user?.level ?? "B1") as CEFRLevel;
         const userName = data.data.user?.name ?? "there";
         setGoal(userGoal);
+        setScenarios(data.data.scenarios ?? []);
         setAiStatus(data.data.aiConfigured ? "configured" : "not_configured");
 
         if (data.data.messages.length > 0) {
@@ -68,7 +77,7 @@ export default function ChatPage() {
     }
   }, [isRecording, displayText]);
 
-  async function sendMessage(text: string) {
+  async function sendMessage(text: string, scenarioId?: string | null) {
     if (!text.trim() || loading) return;
 
     const userMsg: Message = { role: "user", content: text.trim() };
@@ -77,11 +86,16 @@ export default function ChatPage() {
     setLoading(true);
     setChatError("");
 
+    const sid = scenarioId ?? activeScenario;
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text.trim() }),
+        body: JSON.stringify({
+          message: text.trim(),
+          ...(sid ? { scenarioId: sid } : {}),
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -100,6 +114,12 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function startScenario(scenarioId: string) {
+    setActiveScenario(scenarioId);
+    setMessages([]);
+    sendMessage("Let's start the role-play!", scenarioId);
   }
 
   function handleMicToggle() {
@@ -147,6 +167,29 @@ export default function ChatPage() {
         {chatError && (
           <div className="mx-4 mt-3 rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
             {chatError}
+          </div>
+        )}
+
+        {scenarios.length > 0 && (
+          <div className="px-4 pt-3">
+            <p className="text-xs text-slate-500 mb-2">Role-play por cenário</p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {scenarios.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => startScenario(s.id)}
+                  className={cn(
+                    "shrink-0 px-3 py-2 rounded-xl text-xs font-medium border transition-all",
+                    activeScenario === s.id
+                      ? "bg-norte-blue text-white border-norte-blue"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-norte-blue/30"
+                  )}
+                >
+                  {s.title}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

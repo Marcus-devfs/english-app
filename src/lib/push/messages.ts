@@ -46,6 +46,16 @@ const GOAL_MESSAGES: Record<LearningGoal, GoalMessages> = {
         "{firstName}, {streak} days in a row! Don't lose momentum before your next interview."
       ),
     },
+    comeback: {
+      pt: tpl(
+        "Norte · Sentimos sua falta!",
+        "Oi {firstName}! Volte com uma lição de inglês tech — só {minutes} min."
+      ),
+      en: tpl(
+        "Norte · We missed you!",
+        "Hi {firstName}! Come back with a tech English lesson — just {minutes} min."
+      ),
+    },
   },
   career_abroad: {
     daily_invite: {
@@ -76,6 +86,16 @@ const GOAL_MESSAGES: Record<LearningGoal, GoalMessages> = {
       en: tpl(
         "Norte · {streak}-day streak",
         "Your streak ends at midnight. {minutes} min can save the day, {firstName}!"
+      ),
+    },
+    comeback: {
+      pt: tpl(
+        "Norte · Sentimos sua falta!",
+        "Oi {firstName}! Sua carreira global espera — {minutes} min de prática hoje?"
+      ),
+      en: tpl(
+        "Norte · We missed you!",
+        "Hi {firstName}! Your global career awaits — {minutes} min of practice today?"
       ),
     },
   },
@@ -110,6 +130,16 @@ const GOAL_MESSAGES: Record<LearningGoal, GoalMessages> = {
         "{streak} days in a row, {firstName}. Leaders stay consistent — practice now."
       ),
     },
+    comeback: {
+      pt: tpl(
+        "Norte · Sentimos sua falta!",
+        "Oi {firstName}! Faz dias que você não pratica. Uma lição rápida na trilha?"
+      ),
+      en: tpl(
+        "Norte · We missed you!",
+        "Hi {firstName}! It's been a few days. A quick trail lesson?"
+      ),
+    },
   },
   travel: {
     daily_invite: {
@@ -140,6 +170,16 @@ const GOAL_MESSAGES: Record<LearningGoal, GoalMessages> = {
       en: tpl(
         "Norte · Your streak travels with you",
         "{streak} days! Don't leave the habit behind — {minutes} min and you're done."
+      ),
+    },
+    comeback: {
+      pt: tpl(
+        "Norte · Sentimos sua falta!",
+        "Oi {firstName}! Que tal revisar vocabulário de viagem hoje?"
+      ),
+      en: tpl(
+        "Norte · We missed you!",
+        "Hi {firstName}! How about reviewing travel vocabulary today?"
       ),
     },
   },
@@ -174,6 +214,16 @@ const GOAL_MESSAGES: Record<LearningGoal, GoalMessages> = {
         "{streak}-day streak, {firstName}. Consistent students learn faster."
       ),
     },
+    comeback: {
+      pt: tpl(
+        "Norte · Sentimos sua falta!",
+        "Oi {firstName}! Volte com uma lição curta de inglês acadêmico."
+      ),
+      en: tpl(
+        "Norte · We missed you!",
+        "Hi {firstName}! Come back with a short academic English lesson."
+      ),
+    },
   },
   conversation: {
     daily_invite: {
@@ -204,6 +254,16 @@ const GOAL_MESSAGES: Record<LearningGoal, GoalMessages> = {
       en: tpl(
         "Norte · {streak} days speaking English 🔥",
         "Last chance today, {firstName}! A quick chat saves your streak."
+      ),
+    },
+    comeback: {
+      pt: tpl(
+        "Norte · Sentimos sua falta!",
+        "Oi {firstName}! Faz alguns dias que você não pratica. {minutes} min hoje já fazem diferença."
+      ),
+      en: tpl(
+        "Norte · We missed you!",
+        "Hi {firstName}! It's been a few days. {minutes} min today still makes a difference."
       ),
     },
   },

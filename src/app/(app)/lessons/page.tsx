@@ -59,6 +59,7 @@ function LessonsContent() {
   const [wordPickFeedback, setWordPickFeedback] = useState<StepCheckResult | null>(null);
   const [speakFeedback, setSpeakFeedback] = useState<StepCheckResult | null>(null);
   const [hasRecorded, setHasRecorded] = useState(false);
+  const [speakLoading, setSpeakLoading] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
 
   const { isRecording, displayText, micError, start, stop, reset: resetMic, getFullTranscript } =
@@ -188,15 +189,28 @@ function LessonsContent() {
     if (result.passed) markStepDone("word_pick");
   }
 
-  function handleSpeakSubmit() {
+  async function handleSpeakSubmit() {
     if (!lesson) return;
     const text = isRecording ? stop() : displayText || getFullTranscript();
-    const result = evaluateSpeech(text, lesson.phrase);
-    setSpeakFeedback(result);
-    if (result.passed) {
-      markStepDone("speak");
-      resetMic();
-      setHasRecorded(false);
+    setSpeakLoading(true);
+    try {
+      const res = await fetch("/api/speech/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript: text, targetPhrase: lesson.phrase }),
+      });
+      const data = await res.json();
+      const result: StepCheckResult = data.success
+        ? data.data
+        : evaluateSpeech(text, lesson.phrase);
+      setSpeakFeedback(result);
+      if (result.passed) {
+        markStepDone("speak");
+        resetMic();
+        setHasRecorded(false);
+      }
+    } finally {
+      setSpeakLoading(false);
     }
   }
 
@@ -494,7 +508,8 @@ function LessonsContent() {
                     </Button>
                     <Button
                       onClick={handleSpeakSubmit}
-                      disabled={!displayText && !isRecording && !hasRecorded}
+                      disabled={(!displayText && !isRecording && !hasRecorded) || speakLoading}
+                      loading={speakLoading}
                       className="flex-1"
                     >
                       Verificar pronúncia

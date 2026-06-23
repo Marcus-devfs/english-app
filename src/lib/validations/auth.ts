@@ -43,6 +43,7 @@ export const assessmentSubmitSchema = z.object({
 
 export const chatMessageSchema = z.object({
   message: z.string().min(1).max(2000),
+  scenarioId: z.string().max(64).optional(),
 });
 
 export const quizSubmitSchema = z.object({

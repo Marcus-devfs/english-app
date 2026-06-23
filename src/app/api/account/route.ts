@@ -3,6 +3,9 @@ import { User } from "@/models/User";
 import { ChatMessage } from "@/models/ChatMessage";
 import { Assessment } from "@/models/Assessment";
 import { NotificationLog } from "@/models/NotificationLog";
+import { InterviewSession } from "@/models/InterviewSession";
+import { LessonCompletion } from "@/models/LessonCompletion";
+import { VocabCard } from "@/models/VocabCard";
 import { getSession } from "@/lib/auth/session";
 import { COOKIE_NAME } from "@/lib/auth/session";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
@@ -20,6 +23,9 @@ export async function DELETE() {
       ChatMessage.deleteMany({ userId }),
       Assessment.deleteMany({ userId }),
       NotificationLog.deleteMany({ userId }),
+      InterviewSession.deleteMany({ userId }),
+      LessonCompletion.deleteMany({ userId }),
+      VocabCard.deleteMany({ userId }),
       User.findByIdAndDelete(userId),
     ]);
 

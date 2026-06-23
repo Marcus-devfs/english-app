@@ -18,7 +18,17 @@ export function PhraseOfDayCard() {
   );
 }
 
-export function WeeklyGoalCard({ daysCompleted = 4 }: { daysCompleted?: number }) {
+export function WeeklyGoalCard({
+  daysCompleted = 0,
+  daysGoal = 5,
+  minutesCompleted = 0,
+  minutesGoal = 75,
+}: {
+  daysCompleted?: number;
+  daysGoal?: number;
+  minutesCompleted?: number;
+  minutesGoal?: number;
+}) {
   const today = new Date().getDay();
   const todayIndex = today === 0 ? 6 : today - 1;
 
@@ -26,9 +36,11 @@ export function WeeklyGoalCard({ daysCompleted = 4 }: { daysCompleted?: number }
     <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <p className="font-semibold text-norte-ink text-sm">Meta semanal</p>
-        <p className="text-xs font-bold text-norte-blue">{daysCompleted}/5 dias</p>
+        <p className="text-xs font-bold text-norte-blue">
+          {daysCompleted}/{daysGoal} dias
+        </p>
       </div>
-      <div className="flex justify-between gap-1">
+      <div className="flex justify-between gap-1 mb-3">
         {WEEKLY_GOAL_DAYS.map((day, i) => {
           const done = i < daysCompleted;
           const isToday = i === todayIndex;
@@ -47,6 +59,12 @@ export function WeeklyGoalCard({ daysCompleted = 4 }: { daysCompleted?: number }
             </div>
           );
         })}
+      </div>
+      <div className="flex justify-between text-xs text-slate-500">
+        <span>Minutos de estudo</span>
+        <span className="font-medium text-norte-ink">
+          {minutesCompleted}/{minutesGoal} min
+        </span>
       </div>
     </div>
   );

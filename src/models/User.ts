@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
-import type { CEFRLevel, LearningGoal, QuizQuestion, UserProgress } from "@/types";
+import type { CEFRLevel, DailyLesson, LearningGoal, QuizQuestion, UserProgress } from "@/types";
 import type { UserPreferences } from "@/lib/i18n/translations";
 import { DEFAULT_PREFERENCES } from "@/lib/i18n/translations";
 import type { NotificationState } from "@/lib/push/types";
@@ -17,7 +17,15 @@ export interface CachedQuiz {
   quizId: string;
   questions: QuizQuestion[];
   xpAwarded: boolean;
+  lastScore?: number;
   completedAt?: Date;
+}
+
+export interface CachedLesson {
+  lessonId: string;
+  trailIndex: number;
+  lesson: DailyLesson;
+  source: "ai" | "static";
 }
 
 export interface IUser extends Document {
@@ -34,6 +42,8 @@ export interface IUser extends Document {
   pushSubscriptions: PushSubscriptionData[];
   notificationState?: NotificationState;
   cachedQuiz?: CachedQuiz;
+  cachedLesson?: CachedLesson;
+  cachedReassess?: { questions: unknown[] };
   subscription: UserSubscription;
   createdAt: Date;
   updatedAt: Date;
@@ -87,7 +97,18 @@ const CachedQuizSchema = new Schema(
     quizId: { type: String, required: true },
     questions: { type: Schema.Types.Mixed, required: true },
     xpAwarded: { type: Boolean, default: false },
+    lastScore: { type: Number },
     completedAt: { type: Date },
+  },
+  { _id: false }
+);
+
+const CachedLessonSchema = new Schema(
+  {
+    lessonId: { type: String, required: true },
+    trailIndex: { type: Number, required: true },
+    lesson: { type: Schema.Types.Mixed, required: true },
+    source: { type: String, enum: ["ai", "static"], default: "static" },
   },
   { _id: false }
 );
@@ -99,7 +120,7 @@ const NotificationStateSchema = new Schema(
     lastSentAt: { type: Date },
     lastType: {
       type: String,
-      enum: ["daily_invite", "gentle_nudge", "streak_risk"],
+      enum: ["daily_invite", "gentle_nudge", "streak_risk", "comeback"],
     },
   },
   { _id: false }
@@ -145,6 +166,8 @@ const UserSchema = new Schema<IUser>(
     pushSubscriptions: { type: [PushSubscriptionSchema], default: [] },
     notificationState: { type: NotificationStateSchema },
     cachedQuiz: { type: CachedQuizSchema },
+    cachedLesson: { type: CachedLessonSchema },
+    cachedReassess: { type: Schema.Types.Mixed },
     subscription: { type: SubscriptionSchema, default: () => ({ plan: "free", status: "inactive" }) },
   },
   { timestamps: true }

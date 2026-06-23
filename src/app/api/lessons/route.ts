@@ -1,14 +1,19 @@
 import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
-import { getSession } from "@/lib/auth/session";
-import {
-  getDailyLessonForTrail,
-  getGrammarForGoal,
-  getVocabularyForGoal,
-} from "@/lib/data/lessons";
 import { getTrailForUser } from "@/lib/data/trail";
+import { generateDailyLesson } from "@/services/lesson.service";
+import { getSession } from "@/lib/auth/session";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
 import type { LearningGoal, CEFRLevel } from "@/types";
+
+function todayInTimezone(timezone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
 
 export async function GET(request: Request) {
   try {
@@ -22,6 +27,8 @@ export async function GET(request: Request) {
     const goal = (user.goal ?? "conversation") as LearningGoal;
     const level = (user.diagnosedLevel ?? user.selfAssessedLevel ?? "A1") as CEFRLevel;
     const lessonsCompleted = user.progress?.lessonsCompleted ?? 0;
+    const timezone = user.preferences?.timezone ?? "America/Sao_Paulo";
+    const today = todayInTimezone(timezone);
 
     const { searchParams } = new URL(request.url);
     const indexParam = searchParams.get("index");
@@ -32,15 +39,43 @@ export async function GET(request: Request) {
 
     const { module, lessons } = getTrailForUser(goal, lessonsCompleted);
     const trailLesson = lessons[trailIndex] ?? lessons[lessonsCompleted] ?? lessons[0];
-    const dailyLesson = getDailyLessonForTrail(goal, level, trailIndex);
+    const lessonCacheKey = `${today}-t${trailIndex}`;
+
+    let dailyLesson = user.cachedLesson?.lesson;
+    let lessonSource: "ai" | "static" | "cached" = "cached";
+
+    if (
+      !dailyLesson ||
+      user.cachedLesson?.lessonId !== lessonCacheKey ||
+      user.cachedLesson?.trailIndex !== trailIndex
+    ) {
+      const generated = await generateDailyLesson(
+        goal,
+        level,
+        trailIndex,
+        trailLesson?.title ?? "Lição do dia"
+      );
+      dailyLesson = generated.lesson;
+      lessonSource = generated.source;
+
+      await User.findByIdAndUpdate(user._id, {
+        cachedLesson: {
+          lessonId: lessonCacheKey,
+          trailIndex,
+          lesson: dailyLesson,
+          source: generated.source,
+        },
+      });
+    }
 
     return apiSuccess({
       dailyLesson: {
         ...dailyLesson,
         title: trailLesson?.title ?? dailyLesson.title,
       },
-      grammarLessons: getGrammarForGoal(goal),
-      vocabularyLessons: getVocabularyForGoal(goal),
+      lessonSource,
+      grammarLessons: (await import("@/lib/data/lessons")).getGrammarForGoal(goal),
+      vocabularyLessons: (await import("@/lib/data/lessons")).getVocabularyForGoal(goal),
       trail: {
         index: trailIndex,
         lessonId: trailLesson?.id,

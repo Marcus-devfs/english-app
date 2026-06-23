@@ -5,6 +5,7 @@ interface AIContext {
   goal: LearningGoal;
   level: CEFRLevel;
   userName: string;
+  systemOverride?: string;
 }
 
 interface AIResponse {
@@ -218,7 +219,7 @@ async function callOpenAI(
       body: JSON.stringify({
         model: process.env.AI_MODEL ?? "gpt-4o-mini",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT(ctx) },
+          { role: "system", content: ctx.systemOverride ?? SYSTEM_PROMPT(ctx) },
           ...history.slice(-10),
           { role: "user", content: message },
         ],
@@ -259,8 +260,10 @@ async function callGemini(
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT(ctx) }] },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: ctx.systemOverride ?? SYSTEM_PROMPT(ctx) }],
+        },
       contents,
       generationConfig: {
         temperature: 0.7,

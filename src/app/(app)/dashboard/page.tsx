@@ -12,20 +12,40 @@ import {
   AchievementCard,
   StreakAlertCard,
 } from "@/components/engagement/engagement-cards";
-import { GOAL_LABELS, type UserProgress } from "@/types";
-import { MessageCircle, Zap, ChevronRight, Briefcase } from "lucide-react";
+import { GOAL_LABELS } from "@/types";
+import { MessageCircle, Zap, ChevronRight, Briefcase, BarChart3, RotateCcw } from "lucide-react";
 import { PushPrompt } from "@/components/pwa/push-prompt";
 import { ProBadge, ProBlackCard } from "@/components/subscription/pro-badge";
 import { useSubscription } from "@/lib/hooks/use-subscription";
 
-interface DashboardData {
+interface DashboardStats {
   user: {
     name: string;
     goal: string;
     level: string;
-    progress: UserProgress;
+    progress: {
+      streakDays: number;
+      lessonsCompleted: number;
+      xp: number;
+    };
   };
-  dailyLesson: { title: string; phrase: string };
+  weekly: {
+    xpThisWeek: number;
+    studyDaysThisWeek: number;
+    studyMinutesThisWeek: number;
+    lessonsThisWeek: number;
+    chatMessagesThisWeek: number;
+    quizAccuracy: number | null;
+    levelProgressPct: number;
+    practiceDaysGoal: number;
+    practiceMinutesGoal: number;
+  };
+  totalChatMessages: number;
+  reassessDue: boolean;
+}
+
+interface LessonData {
+  dailyLesson: { title: string };
 }
 
 function getGreeting() {
@@ -36,17 +56,21 @@ function getGreeting() {
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [lesson, setLesson] = useState<LessonData | null>(null);
   const [loading, setLoading] = useState(true);
   const { isPro } = useSubscription();
 
   useEffect(() => {
     async function load() {
-      const res = await fetch("/api/lessons");
-      const json = await res.json();
-      if (json.success) {
-        setData({ user: json.data.user, dailyLesson: json.data.dailyLesson });
-      }
+      const [statsRes, lessonsRes] = await Promise.all([
+        fetch("/api/stats/dashboard"),
+        fetch("/api/lessons"),
+      ]);
+      const statsJson = await statsRes.json();
+      const lessonsJson = await lessonsRes.json();
+      if (statsJson.success) setStats(statsJson.data);
+      if (lessonsJson.success) setLesson(lessonsJson.data);
       setLoading(false);
     }
     load();
@@ -60,16 +84,13 @@ export default function DashboardPage() {
     );
   }
 
-  const progress = data?.user.progress;
-  const firstName = data?.user.name?.split(" ")[0] ?? "aluno";
-  const xpWeek = Math.min(progress?.xp ?? 0, 500);
-  const quizAccuracy =
-    progress && progress.quizzesCompleted > 0
-      ? Math.min(95, 70 + progress.quizzesCompleted * 3)
-      : 0;
+  const progress = stats?.user.progress;
+  const weekly = stats?.weekly;
+  const firstName = stats?.user.name?.split(" ")[0] ?? "aluno";
+  const minutesGoal = (weekly?.practiceMinutesGoal ?? 15) * (weekly?.practiceDaysGoal ?? 5);
 
   return (
-    <AppShell userName={data?.user.name} streak={progress?.streakDays ?? 0}>
+    <AppShell userName={stats?.user.name} streak={progress?.streakDays ?? 0}>
       <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 space-y-5">
         <div className="flex items-start justify-between">
           <div>
@@ -80,10 +101,23 @@ export default function DashboardPage() {
               {isPro && <ProBadge size="md" />}
             </div>
             <p className="text-sm text-slate-500 mt-0.5">
-              {GOAL_LABELS[data?.user.goal as keyof typeof GOAL_LABELS] ?? "Sua trilha"}
+              {GOAL_LABELS[stats?.user.goal as keyof typeof GOAL_LABELS] ?? "Sua trilha"}
             </p>
           </div>
         </div>
+
+        {stats?.reassessDue && (
+          <Link href="/reassess">
+            <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-3 active:scale-[0.98] transition-transform">
+              <RotateCcw className="h-6 w-6 text-amber-600 shrink-0" />
+              <div>
+                <p className="font-semibold text-norte-ink text-sm">Hora de medir seu progresso!</p>
+                <p className="text-xs text-slate-600">Reavaliação de nível disponível</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-amber-600 ml-auto" />
+            </div>
+          </Link>
+        )}
 
         {isPro && (
           <ProBlackCard className="flex items-center justify-between gap-3">
@@ -103,17 +137,15 @@ export default function DashboardPage() {
         )}
 
         <PushPrompt />
-
         <StreakAlertCard streak={progress?.streakDays ?? 0} />
 
-        {/* Lição do dia — card escuro */}
         <div className="rounded-2xl bg-norte-ink p-5 relative overflow-hidden">
           <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/5" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
             Lição do dia
           </p>
           <h2 className="text-lg font-bold text-white leading-snug pr-4">
-            {data?.dailyLesson.title}
+            {lesson?.dailyLesson.title}
           </h2>
           <p className="text-sm text-slate-400 mt-1">5 min · vocabulário + fala</p>
           <Link href="/lessons">
@@ -124,32 +156,45 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Grid 2x2 progresso */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
             <p className="text-xs text-slate-500 mb-1">Nível atual</p>
-            <p className="text-xl font-bold text-norte-ink">{data?.user.level ?? "B1"}</p>
-            <p className="text-xs text-norte-green font-medium mt-0.5">+8%</p>
-            <ProgressBar value={68} className="mt-2" color="blue" />
+            <p className="text-xl font-bold text-norte-ink">{stats?.user.level ?? "B1"}</p>
+            <p className="text-xs text-norte-green font-medium mt-0.5">
+              {weekly?.levelProgressPct ?? 0}% da trilha
+            </p>
+            <ProgressBar value={weekly?.levelProgressPct ?? 0} className="mt-2" color="blue" />
           </div>
           <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
             <p className="text-xs text-slate-500 mb-1">XP esta semana</p>
             <p className="text-xl font-bold text-norte-ink">
-              {xpWeek} <span className="text-sm font-normal text-slate-400">/ 500</span>
+              {weekly?.xpThisWeek ?? 0}{" "}
+              <span className="text-sm font-normal text-slate-400">/ 500</span>
             </p>
-            <ProgressBar value={xpWeek} max={500} className="mt-2" color="yellow" />
+            <ProgressBar
+              value={weekly?.xpThisWeek ?? 0}
+              max={500}
+              className="mt-2"
+              color="yellow"
+            />
           </div>
           <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
             <p className="text-xs text-slate-500 mb-1">Lições</p>
             <p className="text-2xl font-bold text-norte-ink">{progress?.lessonsCompleted ?? 0}</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {weekly?.lessonsThisWeek ?? 0} esta semana
+            </p>
           </div>
           <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
             <p className="text-xs text-slate-500 mb-1">Precisão quiz</p>
-            <p className="text-2xl font-bold text-norte-ink">{quizAccuracy}%</p>
+            <p className="text-2xl font-bold text-norte-ink">
+              {weekly?.quizAccuracy !== null && weekly?.quizAccuracy !== undefined
+                ? `${weekly.quizAccuracy}%`
+                : "—"}
+            </p>
           </div>
         </div>
 
-        {/* Ações rápidas */}
         <div className="grid grid-cols-2 gap-3">
           <Link href="/interview">
             <div className="rounded-2xl bg-gradient-to-br from-norte-ink to-slate-800 border border-slate-700 p-4 h-full active:scale-[0.98] transition-transform relative overflow-hidden">
@@ -178,10 +223,34 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-500">Quiz diário · 5 perguntas</p>
             </div>
           </Link>
+          <Link href="/review">
+            <div className="rounded-2xl bg-violet-50 border border-violet-200 p-4 h-full active:scale-[0.98] transition-transform">
+              <RotateCcw className="h-6 w-6 text-violet-600 mb-2" />
+              <p className="font-semibold text-norte-ink text-sm">Revisar palavras</p>
+              <p className="text-xs text-slate-500">Repetição espaçada</p>
+            </div>
+          </Link>
         </div>
+
+        <Link href="/relatorio">
+          <div className="rounded-2xl bg-white border border-slate-100 p-4 flex items-center gap-3 active:scale-[0.98] transition-transform shadow-sm">
+            <BarChart3 className="h-6 w-6 text-norte-blue" />
+            <div>
+              <p className="font-semibold text-norte-ink text-sm">Relatório semanal</p>
+              <p className="text-xs text-slate-500">Veja seu progresso desta semana</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-slate-400 ml-auto" />
+          </div>
+        </Link>
+
         <PhraseOfDayCard />
-        <WeeklyGoalCard daysCompleted={Math.min(5, progress?.streakDays ?? 0)} />
-        <AchievementCard dialogues={Math.floor((progress?.speakingScore ?? 0) / 2)} />
+        <WeeklyGoalCard
+          daysCompleted={weekly?.studyDaysThisWeek ?? 0}
+          daysGoal={weekly?.practiceDaysGoal ?? 5}
+          minutesCompleted={weekly?.studyMinutesThisWeek ?? 0}
+          minutesGoal={minutesGoal}
+        />
+        <AchievementCard dialogues={stats?.totalChatMessages ?? 0} />
       </div>
     </AppShell>
   );

@@ -2,9 +2,11 @@ import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
 import { ChatMessage } from "@/models/ChatMessage";
+import { getScenariosForGoal, getScenarioById, buildRolePlayPrompt } from "@/lib/data/scenarios";
 import { getSession } from "@/lib/auth/session";
 import { chatMessageSchema } from "@/lib/validations/auth";
 import { getAIResponse, isAIConfigured } from "@/services/ai.service";
+import { upsertVocabCards } from "@/lib/srs/vocab-cards";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
 import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
 import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
@@ -25,6 +27,7 @@ export async function GET() {
     return apiSuccess({
       messages: messages.reverse(),
       aiConfigured: isAIConfigured(),
+      scenarios: getScenariosForGoal((user?.goal ?? "conversation") as LearningGoal),
       user: user
         ? {
             name: user.name,
@@ -74,12 +77,17 @@ export async function POST(request: NextRequest) {
       .limit(10)
       .lean();
 
+    const scenario = parsed.data.scenarioId
+      ? getScenarioById(parsed.data.scenarioId)
+      : undefined;
+
     const aiResponse = await getAIResponse(
       parsed.data.message,
       {
         goal: (user.goal ?? "conversation") as LearningGoal,
         level: (user.diagnosedLevel ?? "B1") as CEFRLevel,
         userName: user.name,
+        systemOverride: scenario ? buildRolePlayPrompt(scenario) : undefined,
       },
       history.reverse().map((m) => ({ role: m.role, content: m.content }))
     );
@@ -90,6 +98,19 @@ export async function POST(request: NextRequest) {
       content: aiResponse.message,
       corrections: aiResponse.corrections,
     });
+
+    if (aiResponse.corrections?.length) {
+      await upsertVocabCards(
+        session.userId,
+        (user.goal ?? "conversation") as LearningGoal,
+        aiResponse.corrections.map((c) => ({
+          word: c.original,
+          meaning: c.corrected,
+          example: c.explanation,
+        })),
+        "chat"
+      );
+    }
 
     await User.findByIdAndUpdate(session.userId, {
       $inc: {

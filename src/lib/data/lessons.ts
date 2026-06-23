@@ -564,14 +564,19 @@ const TRAIL_LEVELS: CEFRLevel[] = ["A1", "A2", "B1", "B2", "C1"];
 export function getDailyLessonForTrail(
   goal: LearningGoal,
   userLevel: CEFRLevel,
-  trailIndex: number
+  trailIndex: number,
+  trailTitle?: string
 ): DailyLesson {
   const level = TRAIL_LEVELS[Math.min(trailIndex, TRAIL_LEVELS.length - 1)] ?? userLevel;
   const base =
     DAILY_LESSONS[goal]?.[level] ??
     DAILY_LESSONS[goal]?.[userLevel] ??
     DAILY_LESSONS.conversation[userLevel];
-  return { ...base, id: `${base.id}-t${trailIndex}` };
+  return {
+    ...base,
+    id: `${base.id}-t${trailIndex}`,
+    title: trailTitle ?? base.title,
+  };
 }
 
 export function getVocabularyForGoal(goal: LearningGoal) {

@@ -101,25 +101,19 @@ export async function POST(request: NextRequest) {
       return apiSuccess({ progress: user.progress, reviewRecorded: true });
     }
 
-    const updates: Record<string, unknown> = {
-      $inc: {
-        "progress.xp": type === "lesson" ? 20 : 5,
-        "progress.totalStudyMinutes": type === "study" ? 10 : 5,
-      },
-    };
-
-    if (type === "lesson") {
-      (updates.$inc as Record<string, number>)["progress.lessonsCompleted"] = 1;
-      (updates.$inc as Record<string, number>)["progress.vocabularyScore"] = 2;
+    if (type === "study") {
+      const updatedUser = await User.findByIdAndUpdate(
+        session.userId,
+        { $inc: { "progress.xp": 5, "progress.totalStudyMinutes": 10 } },
+        { new: true }
+      );
+      if (!updatedUser) return apiError("Usuário não encontrado", 404);
+      await updateStreak(session.userId, updatedUser);
+      const freshUser = await User.findById(session.userId);
+      return apiSuccess({ progress: freshUser?.progress ?? updatedUser.progress });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(session.userId, updates, { new: true });
-    if (!updatedUser) return apiError("Usuário não encontrado", 404);
-
-    await updateStreak(session.userId, updatedUser);
-
-    const freshUser = await User.findById(session.userId);
-    return apiSuccess({ progress: freshUser?.progress ?? updatedUser.progress });
+    return apiError("Requisição inválida. Informe lessonId para completar lições.", 400);
   } catch (error) {
     return handleApiError(error);
   }

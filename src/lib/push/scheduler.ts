@@ -10,6 +10,7 @@ import {
   QUIET_HOURS_START,
 } from "@/lib/constants/push";
 import { getCurrentHourInTimezone } from "@/lib/push/timezone";
+import { daysSinceLastStudy } from "@/lib/stats/weekly";
 import type { NotificationState, ScheduleDecision } from "@/lib/push/types";
 import { resolveNotificationType } from "@/lib/push/messages";
 
@@ -111,7 +112,10 @@ export function evaluateReminderSchedule(input: EvaluateScheduleInput): Schedule
     return { shouldSend: false, reason: "wrong_slot" };
   }
 
-  const type = resolveNotificationType(sentCount, streakDays);
+  const type =
+    daysSinceLastStudy(lastStudyDate) >= 3
+      ? "comeback"
+      : resolveNotificationType(sentCount, streakDays);
 
   return {
     shouldSend: true,
