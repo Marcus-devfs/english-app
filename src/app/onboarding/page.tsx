@@ -46,6 +46,7 @@ export default function OnboardingPage() {
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [liveSpeakingText, setLiveSpeakingText] = useState("");
   const [loading, setLoading] = useState(false);
   const [diagnosis, setDiagnosis] = useState<{
     diagnosedLevel: CEFRLevel;
@@ -104,6 +105,11 @@ export default function OnboardingPage() {
 
   const question = questions[currentQ];
   const progress = step === "goal" ? 33 : step === "assessment" ? 66 : 100;
+
+  const currentAnswer =
+    question?.type === "speaking"
+      ? answers[question.id] || liveSpeakingText
+      : answers[question?.id ?? ""];
 
   return (
     <div className="min-h-dvh bg-norte-bg overflow-y-auto">
@@ -225,9 +231,16 @@ export default function OnboardingPage() {
 
             {question.type === "speaking" && (
               <VoiceRecorder
-                onComplete={(text) =>
-                  setAnswers((prev) => ({ ...prev, [question.id]: text }))
-                }
+                onComplete={(text) => {
+                  setAnswers((prev) => ({ ...prev, [question.id]: text }));
+                  setLiveSpeakingText(text);
+                }}
+                onTranscriptChange={(text) => {
+                  setLiveSpeakingText(text);
+                  if (text.trim()) {
+                    setAnswers((prev) => ({ ...prev, [question.id]: text }));
+                  }
+                }}
               />
             )}
 
@@ -239,10 +252,14 @@ export default function OnboardingPage() {
               )}
               <Button
                 className="flex-1"
-                disabled={!answers[question.id]}
+                disabled={!currentAnswer?.trim()}
                 onClick={() => {
+                  if (question.type === "speaking" && liveSpeakingText && !answers[question.id]) {
+                    setAnswers((prev) => ({ ...prev, [question.id]: liveSpeakingText }));
+                  }
                   if (currentQ < questions.length - 1) {
                     setCurrentQ((q) => q + 1);
+                    setLiveSpeakingText("");
                   } else {
                     handleAssessmentSubmit();
                   }

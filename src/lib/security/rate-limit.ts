@@ -54,4 +54,5 @@ export const RATE_LIMITS = {
   register: { limit: 3, windowMs: 60 * 60 * 1000 },
   chatDaily: { limit: 50, windowMs: 24 * 60 * 60 * 1000 },
   progressHourly: { limit: 10, windowMs: 60 * 60 * 1000 },
+  quizDaily: { limit: 5, windowMs: 24 * 60 * 60 * 1000 },
 } as const;

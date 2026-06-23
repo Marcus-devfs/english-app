@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Mic, Square } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useVoiceRecorder } from "@/lib/hooks/use-voice-recorder";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 
 interface VoiceRecorderProps {
   onComplete: (text: string) => void;
+  onTranscriptChange?: (text: string) => void;
   lang?: string;
   placeholder?: string;
   className?: string;
@@ -15,12 +17,17 @@ interface VoiceRecorderProps {
 
 export function VoiceRecorder({
   onComplete,
+  onTranscriptChange,
   lang = "en-US",
   placeholder = "Toque para falar. Toque no botão vermelho quando terminar.",
   className,
   compact = false,
 }: VoiceRecorderProps) {
-  const { isRecording, displayText, start, stop, reset } = useVoiceRecorder(lang);
+  const { isRecording, displayText, micError, start, stop, reset } = useVoiceRecorder(lang);
+
+  useEffect(() => {
+    onTranscriptChange?.(displayText);
+  }, [displayText, onTranscriptChange]);
 
   function handleToggle() {
     if (isRecording) {
@@ -84,6 +91,10 @@ export function VoiceRecorder({
           <p className="text-sm font-medium text-red-600 mt-4 animate-pulse">
             ● Gravando… toque para finalizar
           </p>
+        )}
+
+        {micError && (
+          <p className="text-sm text-red-600 mt-3">{micError}</p>
         )}
       </div>
 

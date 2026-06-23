@@ -58,9 +58,11 @@ function LessonsContent() {
   const [wordPicks, setWordPicks] = useState<Record<number, string>>({});
   const [wordPickFeedback, setWordPickFeedback] = useState<StepCheckResult | null>(null);
   const [speakFeedback, setSpeakFeedback] = useState<StepCheckResult | null>(null);
+  const [hasRecorded, setHasRecorded] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
 
-  const { isRecording, displayText, start, stop, reset: resetMic } = useVoiceRecorder("en-US");
+  const { isRecording, displayText, micError, start, stop, reset: resetMic, getFullTranscript } =
+    useVoiceRecorder("en-US");
 
   const steps = useMemo(() => (lesson ? buildLessonSteps(lesson) : []), [lesson]);
   const currentStepIndex = steps.findIndex((s) => !completedSteps.has(s.type));
@@ -89,6 +91,9 @@ function LessonsContent() {
     setTranslationFeedback(null);
     setWordPickFeedback(null);
     setSpeakFeedback(null);
+    setHasRecorded(false);
+    resetMic();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep?.type]);
 
   const markStepDone = useCallback((type: LessonStepType) => {
@@ -185,12 +190,22 @@ function LessonsContent() {
 
   function handleSpeakSubmit() {
     if (!lesson) return;
-    const text = isRecording ? stop() : displayText;
+    const text = isRecording ? stop() : displayText || getFullTranscript();
     const result = evaluateSpeech(text, lesson.phrase);
     setSpeakFeedback(result);
     if (result.passed) {
       markStepDone("speak");
       resetMic();
+      setHasRecorded(false);
+    }
+  }
+
+  function handleMicToggle() {
+    if (isRecording) {
+      stop();
+    } else {
+      setHasRecorded(true);
+      start();
     }
   }
 
@@ -460,12 +475,15 @@ function LessonsContent() {
                       {displayText}
                     </p>
                   )}
+                  {micError && (
+                    <p className="text-sm text-red-600">{micError}</p>
+                  )}
                   {speakFeedback && <LessonStepFeedback result={speakFeedback} />}
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       variant={isRecording ? "danger" : "secondary"}
-                      onClick={() => (isRecording ? stop() : start())}
+                      onClick={handleMicToggle}
                       className="shrink-0"
                     >
                       {isRecording ? (
@@ -476,7 +494,7 @@ function LessonsContent() {
                     </Button>
                     <Button
                       onClick={handleSpeakSubmit}
-                      disabled={!displayText && !isRecording}
+                      disabled={!displayText && !isRecording && !hasRecorded}
                       className="flex-1"
                     >
                       Verificar pronúncia

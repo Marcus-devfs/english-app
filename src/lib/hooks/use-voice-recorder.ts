@@ -7,31 +7,49 @@ export function useVoiceRecorder(lang = "en-US") {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const isRecordingRef = useRef(false);
   const finalPartsRef = useRef<string[]>([]);
+  const interimRef = useRef("");
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     recognitionRef.current = getSpeechRecognition();
     return () => {
       isRecordingRef.current = false;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       recognitionRef.current?.stop();
     };
   }, []);
 
   const getFullTranscript = useCallback(() => {
     const final = finalPartsRef.current.join(" ").trim();
-    const interim = interimTranscript.trim();
+    const interim = interimRef.current.trim();
     return (final + (interim ? " " + interim : "")).trim();
-  }, [interimTranscript]);
+  }, []);
+
+  const scheduleUpdate = useCallback(() => {
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      setTranscript(finalPartsRef.current.join(" ").trim());
+      setInterimTranscript(interimRef.current.trim());
+    });
+  }, []);
 
   const start = useCallback(() => {
     const rec = recognitionRef.current;
-    if (!rec) return false;
+    if (!rec) {
+      setMicError("Seu navegador não suporta reconhecimento de voz.");
+      return false;
+    }
 
     finalPartsRef.current = [];
+    interimRef.current = "";
     setTranscript("");
     setInterimTranscript("");
+    setMicError(null);
 
     rec.continuous = true;
     rec.interimResults = true;
@@ -48,13 +66,19 @@ export function useVoiceRecorder(lang = "en-US") {
           interim += text;
         }
       }
-      setTranscript(finalPartsRef.current.join(" ").trim());
-      setInterimTranscript(interim.trim());
+      interimRef.current = interim.trim();
+      scheduleUpdate();
     };
 
     rec.onerror = (event: Event) => {
       const err = event as Event & { error?: string };
       if (err.error === "not-allowed" || err.error === "service-not-allowed") {
+        isRecordingRef.current = false;
+        setIsRecording(false);
+        setMicError("Permissão do microfone negada. Ative nas configurações do navegador.");
+      } else if (err.error === "no-speech") {
+        // Browser timeout — keep recording session alive
+      } else if (err.error === "aborted") {
         isRecordingRef.current = false;
         setIsRecording(false);
       }
@@ -80,26 +104,30 @@ export function useVoiceRecorder(lang = "en-US") {
     } catch {
       isRecordingRef.current = false;
       setIsRecording(false);
+      setMicError("Não foi possível iniciar o microfone. Tente novamente.");
       return false;
     }
-  }, [lang]);
+  }, [lang, scheduleUpdate]);
 
   const stop = useCallback(() => {
     isRecordingRef.current = false;
     recognitionRef.current?.stop();
     setIsRecording(false);
 
-    const final = finalPartsRef.current.join(" ").trim();
-    const full = (final + (interimTranscript ? " " + interimTranscript : "")).trim();
+    const full = getFullTranscript();
+    finalPartsRef.current = full ? [full] : [];
+    interimRef.current = "";
     setTranscript(full);
     setInterimTranscript("");
     return full;
-  }, [interimTranscript]);
+  }, [getFullTranscript]);
 
   const reset = useCallback(() => {
     finalPartsRef.current = [];
+    interimRef.current = "";
     setTranscript("");
     setInterimTranscript("");
+    setMicError(null);
   }, []);
 
   const displayText = [transcript, interimTranscript].filter(Boolean).join(" ").trim();
@@ -109,6 +137,7 @@ export function useVoiceRecorder(lang = "en-US") {
     transcript,
     interimTranscript,
     displayText,
+    micError,
     start,
     stop,
     reset,

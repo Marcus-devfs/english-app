@@ -175,7 +175,7 @@ export default function DashboardPage() {
             <div className="rounded-2xl bg-emerald-50 border border-norte-green/10 p-4 h-full active:scale-[0.98] transition-transform">
               <Zap className="h-6 w-6 text-norte-green mb-2" />
               <p className="font-semibold text-norte-ink text-sm">Quiz rápido</p>
-              <p className="text-xs text-slate-500">5 perguntas</p>
+              <p className="text-xs text-slate-500">Quiz diário · 5 perguntas</p>
             </div>
           </Link>
         </div>

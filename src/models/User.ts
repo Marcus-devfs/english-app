@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
-import type { CEFRLevel, LearningGoal, UserProgress } from "@/types";
+import type { CEFRLevel, LearningGoal, QuizQuestion, UserProgress } from "@/types";
 import type { UserPreferences } from "@/lib/i18n/translations";
 import { DEFAULT_PREFERENCES } from "@/lib/i18n/translations";
 import type { NotificationState } from "@/lib/push/types";
@@ -12,6 +12,13 @@ export interface PushSubscriptionData {
 }
 
 export type UserRole = "user" | "admin";
+
+export interface CachedQuiz {
+  quizId: string;
+  questions: QuizQuestion[];
+  xpAwarded: boolean;
+  completedAt?: Date;
+}
 
 export interface IUser extends Document {
   name: string;
@@ -26,6 +33,7 @@ export interface IUser extends Document {
   preferences: UserPreferences;
   pushSubscriptions: PushSubscriptionData[];
   notificationState?: NotificationState;
+  cachedQuiz?: CachedQuiz;
   subscription: UserSubscription;
   createdAt: Date;
   updatedAt: Date;
@@ -70,6 +78,16 @@ const PushSubscriptionSchema = new Schema(
       auth: { type: String, required: true },
     },
     createdAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const CachedQuizSchema = new Schema(
+  {
+    quizId: { type: String, required: true },
+    questions: { type: Schema.Types.Mixed, required: true },
+    xpAwarded: { type: Boolean, default: false },
+    completedAt: { type: Date },
   },
   { _id: false }
 );
@@ -126,6 +144,7 @@ const UserSchema = new Schema<IUser>(
     preferences: { type: PreferencesSchema, default: () => ({ ...DEFAULT_PREFERENCES }) },
     pushSubscriptions: { type: [PushSubscriptionSchema], default: [] },
     notificationState: { type: NotificationStateSchema },
+    cachedQuiz: { type: CachedQuizSchema },
     subscription: { type: SubscriptionSchema, default: () => ({ plan: "free", status: "inactive" }) },
   },
   { timestamps: true }

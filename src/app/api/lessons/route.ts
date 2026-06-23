@@ -3,7 +3,6 @@ import { User } from "@/models/User";
 import { getSession } from "@/lib/auth/session";
 import {
   getDailyLessonForTrail,
-  getQuizForGoal,
   getGrammarForGoal,
   getVocabularyForGoal,
 } from "@/lib/data/lessons";
@@ -34,14 +33,12 @@ export async function GET(request: Request) {
     const { module, lessons } = getTrailForUser(goal, lessonsCompleted);
     const trailLesson = lessons[trailIndex] ?? lessons[lessonsCompleted] ?? lessons[0];
     const dailyLesson = getDailyLessonForTrail(goal, level, trailIndex);
-    const quiz = getQuizForGoal(goal, level);
 
     return apiSuccess({
       dailyLesson: {
         ...dailyLesson,
         title: trailLesson?.title ?? dailyLesson.title,
       },
-      quiz,
       grammarLessons: getGrammarForGoal(goal),
       vocabularyLessons: getVocabularyForGoal(goal),
       trail: {

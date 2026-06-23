@@ -1,4 +1,6 @@
 import {
+  DAILY_REMINDER_SLOTS,
+  getSlotForSentCount,
   HIGH_STREAK_THRESHOLD,
   isAnyReminderHour,
   MAX_DAILY_PUSHES,
@@ -31,6 +33,20 @@ export function getEffectiveSentCount(
 
 function hoursSince(date: Date): number {
   return (Date.now() - date.getTime()) / (1000 * 60 * 60);
+}
+
+function getExpectedSlot(reminderHour: number, sentCount: number): number | undefined {
+  if (isAnyReminderHour(reminderHour)) {
+    return getSlotForSentCount(sentCount);
+  }
+
+  // Horário personalizado: primeiro push na hora escolhida, depois slots automáticos seguintes
+  if (sentCount === 0) {
+    return reminderHour;
+  }
+
+  const followUpSlots = DAILY_REMINDER_SLOTS.filter((h) => h > reminderHour);
+  return followUpSlots[sentCount - 1];
 }
 
 export interface EvaluateScheduleInput {
@@ -85,14 +101,14 @@ export function evaluateReminderSchedule(input: EvaluateScheduleInput): Schedule
     return { shouldSend: false, reason: "cooldown" };
   }
 
-  // Horário personalizado: primeiro push só após a hora escolhida (fuso local)
-  if (
-    !force &&
-    !isAnyReminderHour(reminderHour) &&
-    sentCount === 0 &&
-    currentHour < reminderHour
-  ) {
-    return { shouldSend: false, reason: "before_reminder_hour" };
+  const expectedSlot = getExpectedSlot(reminderHour, sentCount);
+
+  if (!force && expectedSlot === undefined) {
+    return { shouldSend: false, reason: "no_slot_for_count" };
+  }
+
+  if (!force && expectedSlot !== undefined && currentHour !== expectedSlot) {
+    return { shouldSend: false, reason: "wrong_slot" };
   }
 
   const type = resolveNotificationType(sentCount, streakDays);
