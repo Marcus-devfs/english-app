@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Mic, Square } from "lucide-react";
+import { Mic, Square, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { useVoiceRecorder } from "@/lib/hooks/use-voice-recorder";
+import { useAudioRecorder } from "@/lib/hooks/use-audio-recorder";
 import { Button } from "@/components/ui/button";
 
 interface VoiceRecorderProps {
@@ -18,24 +18,32 @@ interface VoiceRecorderProps {
 export function VoiceRecorder({
   onComplete,
   onTranscriptChange,
-  lang = "en-US",
-  placeholder = "Toque para falar. Toque no botão vermelho quando terminar.",
+  placeholder = "Toque para gravar. A IA vai transcrever o que você falar.",
   className,
   compact = false,
 }: VoiceRecorderProps) {
-  const { isRecording, displayText, micError, start, stop, reset } = useVoiceRecorder(lang);
+  const {
+    isRecording,
+    isTranscribing,
+    displayText,
+    micError,
+    transcribeSource,
+    start,
+    stop,
+    reset,
+  } = useAudioRecorder();
 
   useEffect(() => {
     onTranscriptChange?.(displayText);
   }, [displayText, onTranscriptChange]);
 
-  function handleToggle() {
+  async function handleToggle() {
     if (isRecording) {
-      const text = stop();
+      const text = await stop();
       if (text) onComplete(text);
     } else {
       reset();
-      start();
+      await start();
     }
   }
 
@@ -44,8 +52,9 @@ export function VoiceRecorder({
       <button
         type="button"
         onClick={handleToggle}
+        disabled={isTranscribing}
         className={cn(
-          "shrink-0 h-11 w-11 rounded-xl flex items-center justify-center transition-all",
+          "shrink-0 h-11 w-11 rounded-xl flex items-center justify-center transition-all disabled:opacity-60",
           isRecording
             ? "bg-red-500 text-white recording-pulse"
             : "bg-norte-blue-light text-norte-blue hover:bg-norte-blue/10",
@@ -62,19 +71,20 @@ export function VoiceRecorder({
     <div className={cn("space-y-4", className)}>
       <div className="rounded-2xl bg-norte-blue-light border border-norte-blue/10 p-6 text-center">
         <p className="text-sm text-norte-blue mb-4">
-          {isRecording
-            ? "Fale com calma. Toque no botão vermelho quando terminar."
-            : placeholder}
+          {isTranscribing
+            ? "Transcrevendo com IA…"
+            : isRecording
+              ? "Fale com calma. Toque no vermelho quando terminar."
+              : placeholder}
         </p>
 
         <button
           type="button"
           onClick={handleToggle}
+          disabled={isTranscribing}
           className={cn(
-            "relative h-20 w-20 rounded-full mx-auto flex items-center justify-center transition-all shadow-lg",
-            isRecording
-              ? "bg-red-500 recording-pulse"
-              : "bg-norte-blue hover:bg-norte-blue/90"
+            "relative h-20 w-20 rounded-full mx-auto flex items-center justify-center transition-all shadow-lg disabled:opacity-60",
+            isRecording ? "bg-red-500 recording-pulse" : "bg-norte-blue hover:bg-norte-blue/90"
           )}
         >
           {isRecording ? (
@@ -93,18 +103,30 @@ export function VoiceRecorder({
           </p>
         )}
 
-        {micError && (
-          <p className="text-sm text-red-600 mt-3">{micError}</p>
+        {isTranscribing && (
+          <p className="text-sm font-medium text-norte-blue mt-4 flex items-center justify-center gap-1">
+            <Sparkles className="h-4 w-4" />
+            IA transcrevendo seu áudio
+          </p>
         )}
+
+        {micError && <p className="text-sm text-red-600 mt-3">{micError}</p>}
       </div>
 
       {displayText && (
         <div className="rounded-xl bg-white border border-slate-200 p-4">
-          <p className="text-xs text-slate-500 mb-1">
-            {isRecording ? "Transcrição ao vivo:" : "Sua resposta:"}
-          </p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-slate-500">
+              {transcribeSource === "gemini" ? "Transcrição (IA):" : "Transcrição:"}
+            </p>
+            {transcribeSource === "gemini" && (
+              <span className="text-[10px] text-norte-blue flex items-center gap-0.5">
+                <Sparkles className="h-3 w-3" /> Gemini
+              </span>
+            )}
+          </div>
           <p className="text-norte-ink leading-relaxed">{displayText}</p>
-          {!isRecording && (
+          {!isRecording && !isTranscribing && (
             <Button
               variant="secondary"
               size="sm"

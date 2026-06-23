@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db/mongodb";
 import { User } from "@/models/User";
 import { getTrailForUser } from "@/lib/data/trail";
+import { getTrailDailyState } from "@/lib/trail/daily";
 import { generateDailyLesson } from "@/services/lesson.service";
 import { getSession } from "@/lib/auth/session";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/response";
@@ -38,7 +39,14 @@ export async function GET(request: Request) {
         : lessonsCompleted;
 
     const { module, lessons } = getTrailForUser(goal, lessonsCompleted);
+    const trailState = getTrailDailyState(
+      goal,
+      lessonsCompleted,
+      user.progress?.lastStudyDate,
+      timezone
+    );
     const trailLesson = lessons[trailIndex] ?? lessons[lessonsCompleted] ?? lessons[0];
+    const lessonView = trailState.lessons[trailIndex];
     const lessonCacheKey = `${today}-t${trailIndex}`;
 
     let dailyLesson = user.cachedLesson?.lesson;
@@ -81,7 +89,8 @@ export async function GET(request: Request) {
         lessonId: trailLesson?.id,
         lessonTitle: trailLesson?.title,
         isReview: trailIndex < lessonsCompleted,
-        isCurrent: trailIndex === lessonsCompleted,
+        isCurrent: lessonView?.displayStatus === "current",
+        isTodayDone: lessonView?.displayStatus === "completed_today",
         moduleTitle: module.title,
       },
       user: {

@@ -8,6 +8,7 @@ import { checkRateLimit, RATE_LIMITS } from "@/lib/security/rate-limit";
 import { rateLimitExceededResponse } from "@/lib/security/rate-limit-response";
 import { apiSuccess, apiError, handleZodError, handleApiError } from "@/lib/api/response";
 import type { LearningGoal, CEFRLevel } from "@/types";
+import { todayInTimezone, dateInTimezone } from "@/lib/trail/daily";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +35,26 @@ export async function POST(request: NextRequest) {
     if (!user) return apiError("Usuário não encontrado", 404);
 
     if (type === "lesson" && lessonId && !isReview) {
+      const timezone = user.preferences?.timezone ?? "America/Sao_Paulo";
+      const today = todayInTimezone(timezone);
+
+      if (user.progress.lastStudyDate === today) {
+        const latest = await LessonCompletion.findOne({
+          userId: session.userId,
+          isReview: false,
+        }).sort({ completedAt: -1 });
+
+        if (
+          latest &&
+          dateInTimezone(new Date(latest.completedAt), timezone) === today
+        ) {
+          return apiError(
+            "Você já completou a lição de hoje. Revise lições anteriores ou volte amanhã.",
+            400
+          );
+        }
+      }
+
       const existing = await LessonCompletion.findOne({
         userId: session.userId,
         lessonId,
@@ -120,11 +141,13 @@ export async function POST(request: NextRequest) {
 }
 
 async function updateStreak(userId: string, user: InstanceType<typeof User>) {
-  const today = new Date().toISOString().split("T")[0];
+  const timezone = user.preferences?.timezone ?? "America/Sao_Paulo";
+  const today = todayInTimezone(timezone);
+
   if (user.progress.lastStudyDate !== today) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    const yesterdayStr = dateInTimezone(yesterday, timezone);
 
     const newStreak =
       user.progress.lastStudyDate === yesterdayStr ? user.progress.streakDays + 1 : 1;

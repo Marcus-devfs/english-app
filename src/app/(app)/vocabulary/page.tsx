@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/ui/loading";
 import { BookOpen, Library, Volume2 } from "lucide-react";
 import { GOAL_LABELS, type LearningGoal } from "@/types";
+import { useTts } from "@/lib/hooks/use-tts";
 
 interface GrammarLesson {
   id: string;
@@ -31,6 +32,7 @@ export default function VocabularyPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"vocabulary" | "grammar">("vocabulary");
   const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set());
+  const { speak, speaking: ttsSpeaking } = useTts();
 
   useEffect(() => {
     fetch("/api/lessons")
@@ -44,14 +46,6 @@ export default function VocabularyPage() {
         setLoading(false);
       });
   }, []);
-
-  function speak(text: string) {
-    if ("speechSynthesis" in window) {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "en-US";
-      speechSynthesis.speak(u);
-    }
-  }
 
   function toggleAnswer(id: string) {
     setRevealedAnswers((prev) => {

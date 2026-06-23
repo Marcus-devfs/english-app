@@ -21,7 +21,8 @@ import {
 } from "@/lib/lessons/build-steps";
 import { LessonStepHint } from "@/components/lessons/lesson-step-hint";
 import { LessonStepFeedback } from "@/components/lessons/lesson-step-feedback";
-import { useVoiceRecorder } from "@/lib/hooks/use-voice-recorder";
+import { useAudioRecorder } from "@/lib/hooks/use-audio-recorder";
+import { useTts } from "@/lib/hooks/use-tts";
 import {
   ArrowLeft,
   BookOpen,
@@ -29,6 +30,7 @@ import {
   ChevronRight,
   Mic,
   Square,
+  Sparkles,
   Volume2,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -39,6 +41,7 @@ interface TrailMeta {
   lessonTitle: string;
   isReview: boolean;
   isCurrent: boolean;
+  isTodayDone: boolean;
   moduleTitle: string;
 }
 
@@ -62,8 +65,17 @@ function LessonsContent() {
   const [speakLoading, setSpeakLoading] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
 
-  const { isRecording, displayText, micError, start, stop, reset: resetMic, getFullTranscript } =
-    useVoiceRecorder("en-US");
+  const {
+    isRecording,
+    isTranscribing,
+    displayText,
+    micError,
+    transcribeSource,
+    start,
+    stop,
+    reset: resetMic,
+  } = useAudioRecorder();
+  const { speak, speaking: ttsSpeaking } = useTts();
 
   const steps = useMemo(() => (lesson ? buildLessonSteps(lesson) : []), [lesson]);
   const currentStepIndex = steps.findIndex((s) => !completedSteps.has(s.type));
@@ -155,18 +167,9 @@ function LessonsContent() {
     }
   }, [completedSteps.size, steps.length, finished, autoCompleting, completeLesson, lesson]);
 
-  function speak(text: string) {
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "en-US";
-      utterance.rate = 0.85;
-      speechSynthesis.speak(utterance);
-    }
-  }
-
-  function handleListen() {
+  async function handleListen() {
     if (lesson) {
-      speak(lesson.phrase);
+      await speak(lesson.phrase);
       markStepDone("listen");
     }
   }
@@ -191,7 +194,12 @@ function LessonsContent() {
 
   async function handleSpeakSubmit() {
     if (!lesson) return;
-    const text = isRecording ? stop() : displayText || getFullTranscript();
+    let text = displayText;
+    if (isRecording) {
+      text = await stop();
+    }
+    if (!text?.trim()) return;
+
     setSpeakLoading(true);
     try {
       const res = await fetch("/api/speech/evaluate", {
@@ -214,12 +222,13 @@ function LessonsContent() {
     }
   }
 
-  function handleMicToggle() {
+  async function handleMicToggle() {
     if (isRecording) {
-      stop();
+      await stop();
     } else {
       setHasRecorded(true);
-      start();
+      setSpeakFeedback(null);
+      await start();
     }
   }
 
@@ -254,7 +263,13 @@ function LessonsContent() {
         <div>
           <div className="flex flex-wrap gap-2 mb-2">
             <Badge variant="info">
-              {trail?.isReview ? "Revisão" : "Lição de hoje"}
+              {trail?.isReview
+                ? "Revisão"
+                : trail?.isTodayDone
+                  ? "Feita hoje"
+                  : trail?.isCurrent
+                    ? "Lição de hoje"
+                    : "Lição"}
             </Badge>
             {trail?.moduleTitle && (
               <Badge variant="level">{trail.moduleTitle}</Badge>
@@ -340,9 +355,14 @@ function LessonsContent() {
                       onToggle={() => setHintOpen((v) => !v)}
                     />
                   )}
-                  <Button onClick={handleListen} className="w-full">
+                  <Button
+                    onClick={handleListen}
+                    loading={ttsSpeaking}
+                    disabled={ttsSpeaking}
+                    className="w-full"
+                  >
                     <Volume2 className="h-4 w-4" />
-                    Ouvir frase
+                    {ttsSpeaking ? "Reproduzindo…" : "Ouvir frase"}
                   </Button>
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-slate-500">Vocabulário</p>
@@ -356,7 +376,9 @@ function LessonsContent() {
                           <button
                             type="button"
                             onClick={() => speak(word)}
-                            className="text-norte-blue"
+                            disabled={ttsSpeaking}
+                            className="text-norte-blue disabled:opacity-50"
+                            aria-label={`Ouvir ${word}`}
                           >
                             <Volume2 className="h-3.5 w-3.5" />
                           </button>
@@ -484,10 +506,24 @@ function LessonsContent() {
                       ● Gravando… fale a frase em inglês
                     </p>
                   )}
-                  {displayText && (
-                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-xl">
-                      {displayText}
+                  {isTranscribing && (
+                    <p className="text-xs text-norte-blue flex items-center gap-1">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Transcrevendo com IA…
                     </p>
+                  )}
+                  {displayText && (
+                    <div className="text-sm bg-slate-50 p-3 rounded-xl space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-slate-500">O que a IA entendeu:</p>
+                        {transcribeSource === "gemini" && (
+                          <span className="text-[10px] text-norte-blue flex items-center gap-0.5">
+                            <Sparkles className="h-3 w-3" /> Gemini
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-700">{displayText}</p>
+                    </div>
                   )}
                   {micError && (
                     <p className="text-sm text-red-600">{micError}</p>
@@ -498,6 +534,7 @@ function LessonsContent() {
                       type="button"
                       variant={isRecording ? "danger" : "secondary"}
                       onClick={handleMicToggle}
+                      disabled={isTranscribing}
                       className="shrink-0"
                     >
                       {isRecording ? (
@@ -508,8 +545,12 @@ function LessonsContent() {
                     </Button>
                     <Button
                       onClick={handleSpeakSubmit}
-                      disabled={(!displayText && !isRecording && !hasRecorded) || speakLoading}
-                      loading={speakLoading}
+                      disabled={
+                        isTranscribing ||
+                        (!displayText && !isRecording && !hasRecorded) ||
+                        speakLoading
+                      }
+                      loading={speakLoading || isTranscribing}
                       className="flex-1"
                     >
                       Verificar pronúncia

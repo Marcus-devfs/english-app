@@ -44,6 +44,12 @@ interface DashboardStats {
   reassessDue: boolean;
 }
 
+interface TrailSummary {
+  todayLessonDone: boolean;
+  todayLessonIndex: number | null;
+  lessons: { title: string; displayStatus: string }[];
+}
+
 interface LessonData {
   dailyLesson: { title: string };
 }
@@ -57,20 +63,24 @@ function getGreeting() {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [trail, setTrail] = useState<TrailSummary | null>(null);
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [loading, setLoading] = useState(true);
   const { isPro } = useSubscription();
 
   useEffect(() => {
     async function load() {
-      const [statsRes, lessonsRes] = await Promise.all([
+      const [statsRes, lessonsRes, trailRes] = await Promise.all([
         fetch("/api/stats/dashboard"),
         fetch("/api/lessons"),
+        fetch("/api/trail"),
       ]);
       const statsJson = await statsRes.json();
       const lessonsJson = await lessonsRes.json();
+      const trailJson = await trailRes.json();
       if (statsJson.success) setStats(statsJson.data);
       if (lessonsJson.success) setLesson(lessonsJson.data);
+      if (trailJson.success) setTrail(trailJson.data.trail);
       setLoading(false);
     }
     load();
@@ -88,6 +98,12 @@ export default function DashboardPage() {
   const weekly = stats?.weekly;
   const firstName = stats?.user.name?.split(" ")[0] ?? "aluno";
   const minutesGoal = (weekly?.practiceMinutesGoal ?? 15) * (weekly?.practiceDaysGoal ?? 5);
+  const todayLesson = trail?.lessons.find((l) => l.displayStatus === "current");
+  const doneTodayLesson = trail?.lessons.find((l) => l.displayStatus === "completed_today");
+  const lessonTitle =
+    (trail?.todayLessonDone ? doneTodayLesson?.title : todayLesson?.title) ??
+    lesson?.dailyLesson.title ??
+    "Sua lição";
 
   return (
     <AppShell userName={stats?.user.name} streak={progress?.streakDays ?? 0}>
@@ -142,15 +158,27 @@ export default function DashboardPage() {
         <div className="rounded-2xl bg-norte-ink p-5 relative overflow-hidden">
           <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/5" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            Lição do dia
+            {trail?.todayLessonDone ? "Lição de hoje" : "Lição do dia"}
           </p>
           <h2 className="text-lg font-bold text-white leading-snug pr-4">
-            {lesson?.dailyLesson.title}
+            {lessonTitle}
           </h2>
-          <p className="text-sm text-slate-400 mt-1">5 min · vocabulário + fala</p>
-          <Link href="/lessons">
+          <p className="text-sm text-slate-400 mt-1">
+            {trail?.todayLessonDone
+              ? "Concluída · próxima amanhã"
+              : "5 min · vocabulário + fala"}
+          </p>
+          <Link
+            href={
+              trail?.todayLessonDone
+                ? "/trilha"
+                : trail?.todayLessonIndex !== null && trail?.todayLessonIndex !== undefined
+                  ? `/lessons?index=${trail.todayLessonIndex}`
+                  : "/lessons"
+            }
+          >
             <Button variant="accent" size="sm" className="mt-4">
-              Continuar
+              {trail?.todayLessonDone ? "Ver trilha" : "Começar lição"}
               <ChevronRight className="h-4 w-4" />
             </Button>
           </Link>

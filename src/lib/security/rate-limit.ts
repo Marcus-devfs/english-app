@@ -55,4 +55,6 @@ export const RATE_LIMITS = {
   chatDaily: { limit: 50, windowMs: 24 * 60 * 60 * 1000 },
   progressHourly: { limit: 10, windowMs: 60 * 60 * 1000 },
   quizDaily: { limit: 5, windowMs: 24 * 60 * 60 * 1000 },
+  ttsDaily: { limit: 120, windowMs: 24 * 60 * 60 * 1000 },
+  transcribeDaily: { limit: 80, windowMs: 24 * 60 * 60 * 1000 },
 } as const;
