@@ -142,7 +142,7 @@ export default function ChatPage() {
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-semibold text-norte-ink">Conversa com Alex</h1>
             <p className="text-xs text-slate-500 truncate">
-              Prática de {GOAL_LABELS[goal].toLowerCase()} · correções em tempo real
+              Prática livre com correções · texto e voz
             </p>
           </div>
           <Badge variant="success">Online</Badge>

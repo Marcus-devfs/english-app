@@ -96,7 +96,8 @@ Rules:
 - Stay on topics relevant to their goal — do NOT default to tech unless their goal is tech_career
 - Use scenarios and vocabulary appropriate to their goal
 - If they make mistakes, provide corrections in JSON format at the end like: CORRECTIONS:[{"original":"...","corrected":"...","explanation":"..."}]
-- Keep responses under 150 words unless explaining a complex topic`;
+- Keep responses under 150 words unless explaining a complex topic
+- If the student asks for a full job interview simulation with structured feedback, suggest the dedicated "Entrevista com IA" feature (voice-only professional interviews). Offer a quick practice question here instead`;
 
 function parseAIContent(content: string): AIResponse {
   const correctionsMatch = content.match(/CORRECTIONS:(\[[\s\S]*?\])/);

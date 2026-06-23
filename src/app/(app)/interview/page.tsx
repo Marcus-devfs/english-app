@@ -1,29 +1,24 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { ProBadge } from "@/components/subscription/pro-badge";
 import { Loading } from "@/components/ui/loading";
-import { useVoiceRecorder } from "@/lib/hooks/use-voice-recorder";
+import { useInterviewVoice } from "@/lib/hooks/use-interview-voice";
 import {
   ArrowLeft,
-  Bot,
   Crown,
   Lock,
   Mic,
-  Send,
   Square,
-  User,
   ClipboardCheck,
+  Volume2,
+  Sparkles,
+  Headphones,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
 
 interface Feedback {
   overallScore: number;
@@ -32,17 +27,37 @@ interface Feedback {
   summary: string;
 }
 
+function phaseLabel(phase: string, isRecording: boolean) {
+  if (phase === "ai_speaking") return "Alex está falando…";
+  if (phase === "transcribing") return "Transcrevendo sua resposta…";
+  if (phase === "thinking") return "Alex está preparando a próxima pergunta…";
+  if (isRecording || phase === "listening") return "Gravando — toque para enviar";
+  if (phase === "ready") return "Toque no microfone para responder";
+  return "";
+}
+
 function InterviewContent() {
   const [isPro, setIsPro] = useState<boolean | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [starting, setStarting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [questionCount, setQuestionCount] = useState(0);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const { isRecording, displayText, start, stop } = useVoiceRecorder("en-US");
+  const [starting, setStarting] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [showCaptions, setShowCaptions] = useState(false);
+
+  const {
+    phase,
+    sessionId,
+    questionCount,
+    lastAiText,
+    lastUserText,
+    error,
+    isRecording,
+    micDisabled,
+    startInterview,
+    resumeSession,
+    toggleMic,
+    finishInterview,
+    reset,
+  } = useInterviewVoice();
 
   useEffect(() => {
     fetch("/api/interview")
@@ -51,93 +66,28 @@ function InterviewContent() {
         if (data.success) {
           setIsPro(data.data.isPro);
           if (data.data.activeSession) {
-            setSessionId(data.data.activeSession.id);
-            setMessages(data.data.activeSession.messages);
-            setQuestionCount(
-              data.data.activeSession.messages.filter(
-                (m: Message) => m.role === "assistant"
-              ).length
+            resumeSession(
+              data.data.activeSession.id,
+              data.data.activeSession.messages
             );
           }
         }
       });
-  }, []);
+  }, [resumeSession]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, feedback]);
-
-  useEffect(() => {
-    if (isRecording && displayText) setInput(displayText);
-  }, [isRecording, displayText]);
-
-  async function startInterview() {
+  async function handleStart() {
     setStarting(true);
     setFeedback(null);
-    try {
-      const res = await fetch("/api/interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start" }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSessionId(data.data.sessionId);
-        setMessages([data.data.message]);
-        setQuestionCount(1);
-      }
-    } finally {
-      setStarting(false);
-    }
+    reset();
+    await startInterview();
+    setStarting(false);
   }
 
-  async function sendMessage(text: string) {
-    if (!text.trim() || loading || !sessionId) return;
-
-    const userMsg: Message = { role: "user", content: text.trim() };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "message",
-          sessionId,
-          message: text.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMessages((prev) => [...prev, data.data.message]);
-        setQuestionCount(data.data.questionCount ?? questionCount + 1);
-      } else {
-        setMessages((prev) => prev.slice(0, -1));
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function finishInterview() {
-    if (!sessionId || loading) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "finish", sessionId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setFeedback(data.data.feedback);
-        setSessionId(null);
-      }
-    } finally {
-      setLoading(false);
-    }
+  async function handleFinish() {
+    setFinishing(true);
+    const result = await finishInterview();
+    if (result) setFeedback(result);
+    setFinishing(false);
   }
 
   if (isPro === null) {
@@ -157,8 +107,8 @@ function InterviewContent() {
           </div>
           <h1 className="text-xl font-bold text-norte-ink">Entrevista com IA</h1>
           <p className="text-sm text-slate-500 mt-2 max-w-xs">
-            Simule uma entrevista real em inglês com contexto das lições que você já estudou.
-            Disponível no plano PRO.
+            Simulação profissional só por voz — Alex fala as perguntas e você responde em
+            áudio. Usa seu progresso nas lições para personalizar a entrevista.
           </p>
           <Link href="/pro" className="mt-6 w-full max-w-xs">
             <Button variant="accent" className="w-full gap-2">
@@ -176,61 +126,88 @@ function InterviewContent() {
 
   return (
     <AppShell showHeader={false}>
-      <div className="flex flex-col h-full min-h-0">
-        <div className="shrink-0 px-4 pt-4 pb-3 border-b border-slate-100 bg-white">
+      <div className="flex flex-col h-full min-h-0 bg-gradient-to-b from-slate-900 to-norte-ink text-white">
+        <div className="shrink-0 px-4 pt-4 pb-3 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-slate-400 hover:text-norte-blue">
+            <Link href="/dashboard" className="text-slate-400 hover:text-white">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="font-semibold text-norte-ink truncate">Entrevista com Alex</h1>
+                <h1 className="font-semibold truncate">Entrevista com Alex</h1>
                 <ProBadge size="sm" className="shrink-0" />
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400 flex items-center gap-1">
+                <Headphones className="h-3 w-3" />
                 {sessionId
-                  ? `${questionCount} pergunta(s) · responda em inglês`
-                  : "Simulação profissional baseada no seu progresso"}
+                  ? `${questionCount} pergunta(s) · só áudio`
+                  : "Entrevista personalizada · só áudio"}
               </p>
             </div>
+            {sessionId && (
+              <button
+                type="button"
+                onClick={() => setShowCaptions((v) => !v)}
+                className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg border border-white/10"
+              >
+                {showCaptions ? "Ocultar texto" : "Legendas"}
+              </button>
+            )}
           </div>
         </div>
 
         {!sessionId && !feedback && (
           <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-            <div className="h-14 w-14 rounded-2xl bg-norte-blue flex items-center justify-center mb-4">
-              <ClipboardCheck className="h-7 w-7 text-white" />
+            <div className="h-20 w-20 rounded-full bg-white/10 flex items-center justify-center mb-6 ring-4 ring-white/5">
+              <ClipboardCheck className="h-9 w-9 text-norte-yellow" />
             </div>
-            <h2 className="text-lg font-bold text-norte-ink">Pronto para a entrevista?</h2>
-            <p className="text-sm text-slate-500 mt-2 max-w-sm">
-              Alex vai conduzir uma entrevista em inglês usando o vocabulário e temas das suas
-              lições completadas. Responda com naturalidade — como numa entrevista real.
+            <h2 className="text-xl font-bold">Entrevista por voz</h2>
+            <p className="text-sm text-slate-400 mt-3 max-w-sm leading-relaxed">
+              Diferente do chat, aqui é uma simulação real de entrevista. Alex faz perguntas em
+              voz alta com base nas suas lições, nível e objetivo. Você responde falando — a IA
+              transcreve e conduz a conversa.
             </p>
+            <ul className="text-xs text-slate-500 mt-4 space-y-1.5 text-left max-w-xs">
+              <li className="flex items-center gap-2">
+                <Volume2 className="h-3.5 w-3.5 text-norte-yellow shrink-0" />
+                Alex fala as perguntas (voz natural)
+              </li>
+              <li className="flex items-center gap-2">
+                <Mic className="h-3.5 w-3.5 text-norte-yellow shrink-0" />
+                Você responde só por áudio
+              </li>
+              <li className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-norte-yellow shrink-0" />
+                Perguntas baseadas no seu progresso
+              </li>
+            </ul>
             <Button
               variant="accent"
-              className="mt-6"
-              onClick={startInterview}
+              className="mt-8"
+              onClick={handleStart}
               disabled={starting}
             >
-              {starting ? "Preparando..." : "Começar entrevista"}
+              {starting ? "Preparando entrevista…" : "Iniciar entrevista por voz"}
             </Button>
           </div>
         )}
 
         {feedback && (
           <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-            <div className="rounded-2xl bg-norte-blue-light border border-norte-blue/10 p-5 text-center">
-              <p className="text-sm text-slate-500">Pontuação geral</p>
-              <p className="text-4xl font-bold text-norte-blue mt-1">{feedback.overallScore}%</p>
+            <div className="rounded-2xl bg-white/10 border border-white/10 p-5 text-center">
+              <p className="text-sm text-slate-400">Pontuação geral</p>
+              <p className="text-4xl font-bold text-norte-yellow mt-1">
+                {feedback.overallScore}%
+              </p>
             </div>
-            <div className="rounded-2xl bg-white border border-slate-100 p-4">
-              <p className="text-sm font-semibold text-norte-ink mb-2">Resumo</p>
-              <p className="text-sm text-slate-600">{feedback.summary}</p>
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+              <p className="text-sm font-semibold mb-2">Resumo</p>
+              <p className="text-sm text-slate-300">{feedback.summary}</p>
             </div>
             {feedback.strengths.length > 0 && (
-              <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
-                <p className="text-sm font-semibold text-emerald-800 mb-2">Pontos fortes</p>
-                <ul className="text-sm text-emerald-700 space-y-1">
+              <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4">
+                <p className="text-sm font-semibold text-emerald-300 mb-2">Pontos fortes</p>
+                <ul className="text-sm text-emerald-200/90 space-y-1">
                   {feedback.strengths.map((s) => (
                     <li key={s}>• {s}</li>
                   ))}
@@ -238,16 +215,16 @@ function InterviewContent() {
               </div>
             )}
             {feedback.improvements.length > 0 && (
-              <div className="rounded-2xl bg-amber-50 border border-amber-100 p-4">
-                <p className="text-sm font-semibold text-amber-800 mb-2">Para melhorar</p>
-                <ul className="text-sm text-amber-700 space-y-1">
+              <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 p-4">
+                <p className="text-sm font-semibold text-amber-300 mb-2">Para melhorar</p>
+                <ul className="text-sm text-amber-200/90 space-y-1">
                   {feedback.improvements.map((s) => (
                     <li key={s}>• {s}</li>
                   ))}
                 </ul>
               </div>
             )}
-            <Button variant="accent" className="w-full" onClick={startInterview}>
+            <Button variant="accent" className="w-full" onClick={handleStart}>
               Nova entrevista
             </Button>
           </div>
@@ -255,110 +232,104 @@ function InterviewContent() {
 
         {sessionId && !feedback && (
           <>
-            <div className="flex-1 overflow-y-auto px-4 py-4">
-              <div className="space-y-4">
-                {messages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "flex gap-3",
-                      msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
-                        msg.role === "user" ? "bg-norte-blue" : "bg-slate-200"
-                      )}
-                    >
-                      {msg.role === "user" ? (
-                        <User className="h-4 w-4 text-white" />
-                      ) : (
-                        <Bot className="h-4 w-4 text-slate-600" />
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        "rounded-2xl px-4 py-3 max-w-[85%] text-sm leading-relaxed",
-                        msg.role === "user"
-                          ? "bg-norte-blue text-white rounded-tr-md"
-                          : "bg-white border border-slate-100 text-norte-ink rounded-tl-md"
-                      )}
-                    >
-                      {msg.content}
-                    </div>
-                  </div>
-                ))}
-                {loading && (
-                  <div className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-slate-600" />
-                    </div>
-                    <div className="rounded-2xl px-4 py-3 bg-white border border-slate-100">
-                      <div className="flex gap-1">
-                        {[0, 1, 2].map((i) => (
-                          <span
-                            key={i}
-                            className="h-2 w-2 rounded-full bg-slate-300 animate-bounce"
-                            style={{ animationDelay: `${i * 0.15}s` }}
-                          />
-                        ))}
-                      </div>
-                    </div>
+            <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6">
+              <div
+                className={cn(
+                  "relative h-32 w-32 rounded-full flex items-center justify-center transition-all duration-500",
+                  phase === "ai_speaking"
+                    ? "bg-norte-blue ring-8 ring-norte-blue/30 scale-105"
+                    : isRecording
+                      ? "bg-red-500/20 ring-8 ring-red-500/30"
+                      : "bg-white/10 ring-4 ring-white/10"
+                )}
+              >
+                {phase === "ai_speaking" && (
+                  <>
+                    <span className="absolute inset-0 rounded-full border-2 border-norte-blue/50 animate-ping" />
+                    <Volume2 className="h-12 w-12 text-white relative z-10" />
+                  </>
+                )}
+                {isRecording && (
+                  <>
+                    <span className="absolute inset-0 rounded-full border-2 border-red-400/50 animate-ping" />
+                    <Mic className="h-12 w-12 text-red-400 relative z-10" />
+                  </>
+                )}
+                {!isRecording && phase !== "ai_speaking" && (
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-white/90">Alex</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">
+                      Entrevistador
+                    </p>
                   </div>
                 )}
-                <div ref={bottomRef} />
               </div>
+
+              <p className="text-sm text-slate-300 text-center min-h-[2.5rem]">
+                {phaseLabel(phase, isRecording)}
+              </p>
+
+              {showCaptions && (
+                <div className="w-full max-w-md space-y-3">
+                  {lastAiText && (
+                    <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+                      <p className="text-[10px] text-slate-500 uppercase mb-1">Alex</p>
+                      <p className="text-sm text-slate-200 leading-relaxed">{lastAiText}</p>
+                    </div>
+                  )}
+                  {lastUserText && (
+                    <div className="rounded-xl bg-norte-blue/20 border border-norte-blue/30 p-3">
+                      <p className="text-[10px] text-slate-400 uppercase mb-1">Você</p>
+                      <p className="text-sm text-white leading-relaxed">{lastUserText}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {error && (
+                <p className="text-sm text-red-400 text-center max-w-xs">{error}</p>
+              )}
             </div>
 
             {questionCount >= 3 && (
-              <div className="px-4 pb-2">
+              <div className="px-6 pb-2">
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="w-full"
-                  onClick={finishInterview}
-                  disabled={loading}
+                  className="w-full bg-white/10 text-white border-white/10 hover:bg-white/20"
+                  onClick={handleFinish}
+                  disabled={finishing || phase === "ai_speaking" || isRecording}
                 >
-                  Finalizar entrevista e ver feedback
+                  {finishing ? "Gerando feedback…" : "Encerrar e ver feedback"}
                 </Button>
               </div>
             )}
 
-            <div className="shrink-0 px-4 py-3 border-t border-slate-100 bg-white pb-safe">
-              <div className="flex items-end gap-2">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage(input);
-                    }
-                  }}
-                  placeholder="Answer in English..."
-                  rows={1}
-                  className="flex-1 resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-norte-blue/30 max-h-24"
-                />
-                <button
-                  type="button"
-                  onClick={isRecording ? stop : start}
-                  className={cn(
-                    "h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-colors",
-                    isRecording ? "bg-red-500 text-white" : "bg-slate-100 text-slate-600"
-                  )}
-                >
-                  {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-5 w-5" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => sendMessage(input)}
-                  disabled={!input.trim() || loading}
-                  className="h-11 w-11 rounded-full bg-norte-blue text-white flex items-center justify-center shrink-0 disabled:opacity-40"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </div>
+            <div className="shrink-0 px-6 py-6 pb-safe flex flex-col items-center gap-3">
+              <button
+                type="button"
+                onClick={toggleMic}
+                disabled={micDisabled && !isRecording}
+                className={cn(
+                  "relative h-20 w-20 rounded-full flex items-center justify-center transition-all shadow-xl disabled:opacity-40",
+                  isRecording
+                    ? "bg-red-500 recording-pulse"
+                    : "bg-norte-yellow text-norte-ink hover:scale-105 active:scale-95"
+                )}
+                aria-label={isRecording ? "Enviar resposta" : "Gravar resposta"}
+              >
+                {isRecording ? (
+                  <Square className="h-8 w-8 text-white fill-white" />
+                ) : (
+                  <Mic className="h-8 w-8" />
+                )}
+                {isRecording && (
+                  <span className="absolute inset-0 rounded-full border-4 border-red-300 animate-ping opacity-40" />
+                )}
+              </button>
+              <p className="text-xs text-slate-500">
+                {isRecording ? "Toque para enviar sua resposta" : "Segure o ritmo de uma entrevista real"}
+              </p>
             </div>
           </>
         )}

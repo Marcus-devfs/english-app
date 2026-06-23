@@ -80,7 +80,13 @@ export async function POST(request: NextRequest) {
 
     const goal = (user.goal ?? "conversation") as LearningGoal;
     const level = (user.diagnosedLevel ?? user.selfAssessedLevel ?? "B1") as CEFRLevel;
-    const studyContext = await buildStudyContext(session.userId, goal, level);
+    const studyContext = await buildStudyContext(session.userId, goal, level, {
+      userName: user.name,
+      streakDays: user.progress?.streakDays,
+      lessonsCompleted: user.progress?.lessonsCompleted,
+      xp: user.progress?.xp,
+      speakingScore: user.progress?.speakingScore,
+    });
 
     const ctx = {
       goal,

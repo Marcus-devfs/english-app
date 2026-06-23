@@ -141,7 +141,7 @@ export default function DashboardPage() {
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Membro Black
               </p>
-              <p className="text-sm font-semibold mt-0.5">Entrevista IA desbloqueada</p>
+              <p className="text-sm font-semibold mt-0.5">Entrevista por voz com Alex</p>
             </div>
             <Link href="/interview">
               <Button variant="accent" size="sm">
@@ -233,7 +233,7 @@ export default function DashboardPage() {
               </div>
               <p className="font-semibold text-white text-sm">Entrevista IA</p>
               <p className="text-xs text-slate-400">
-                {isPro ? "Disponível agora" : "Exclusivo PRO"}
+                {isPro ? "Só voz · simulação real" : "Exclusivo PRO"}
               </p>
             </div>
           </Link>
